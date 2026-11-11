@@ -32,9 +32,13 @@ function titlesFor(p) {
 }
 const check = (p) => (mat(p) ? E.validate(p, PACK, { ovr, legalLib, titles: titlesFor(p) }) : [{ s: "err", m: "Material sin reglas definidas" }]);
 const errCount = (p) => check(p).filter((x) => x.s === "err").length;
-const canApprove = (p) => !isEmpty(p) && errCount(p) === 0 && p.aiOk;
+const skuList = (p) => E.parseSkus(p.brief && p.brief.sku);
+const skuState = (p, s) => ((p.skus || {})[s] || {}).estado || "Sin verificar";
+const skuPending = (p) => $("#skureq").checked && skuList(p).some((s) => skuState(p, s) !== "Disponible");
+const skuLink = (s) => "https://www.google.com/search?q=" + encodeURIComponent(s + " " + ($("#skusite").value.trim() || "Elektra"));
+const canApprove = (p) => !isEmpty(p) && errCount(p) === 0 && p.aiOk && !skuPending(p);
 function newPiece(ciclo, material, brief) {
-  return { id: nid(), t: Date.now(), ciclo, material, brief, fields: {}, estado: "Por revisar", aiOk: false, aiSug: null };
+  return { id: nid(), t: Date.now(), ciclo, material, brief, fields: {}, skus: {}, estado: "Por revisar", aiOk: false, aiSug: null };
 }
 function specs(p) {
   const L = lim(p);
@@ -51,6 +55,17 @@ function legalHtml(p) {
   if (!mat(p).legal) return "";
   const lg = E.autoLegal(p, PACK, legalLib);
   return '<div class="legal"><b>Legal (automático)</b>: ' + (lg.texto ? esc(lg.texto) : lg.need.length ? "falta cargar el texto legal" : "no aplica por ahora") + "</div>";
+}
+const SKU_ST = ["Sin verificar", "Disponible", "Agotado", "No encontrado"];
+function skuHtml(p) {
+  const l = skuList(p); if (!l.length) return "";
+  return '<div class="legal"><b>SKU a verificar</b> (abre la búsqueda, entra a la ficha del producto y confirma la disponibilidad antes de aprobar)' + l.map((s) => {
+    const o = (p.skus || {})[s] || {}, st = skuState(p, s);
+    return '<div class="foot"><a href="' + esc(skuLink(s)) + '" target="_blank" rel="noopener noreferrer">' + esc(s) + ' · buscar en Google ↗</a>' +
+      '<select data-a="skust" data-id="' + p.id + '" data-k="' + esc(s) + '">' + SKU_ST.map((x) => "<option" + (x === st ? " selected" : "") + ">" + x + "</option>").join("") + "</select>" +
+      '<input type="text" style="flex:1 1 220px" placeholder="Pega aquí el enlace del producto (opcional)" data-a="skuurl" data-id="' + p.id + '" data-k="' + esc(s) + '" value="' + esc(o.url || "") + '">' +
+      (st === "Agotado" || st === "No encontrado" ? '<span class="chip err">' + st + "</span>" : st === "Disponible" ? '<span class="chip ok">Disponible</span>' : "") + "</div>";
+  }).join("") + "</div>";
 }
 function aiHtml(p) {
   if (p.aiOk) return '<span class="chip ok">IA: sin errores</span>';
@@ -74,7 +89,7 @@ function cardHtml(p) {
       '<textarea rows="' + (c.id === "in" ? 3 : 2) + '" spellcheck="true" lang="es-MX" data-id="' + p.id + '" data-c="' + c.id + '">' + esc(v) + "</textarea>";
   }).join("");
   return '<div class="meta">' + meta + '</div><div class="brief"><b>Oferta:</b> ' + esc((b.oferta || "").slice(0, 200)) + (b.consideraciones ? " · <i>" + esc(b.consideraciones.slice(0, 80)) + "</i>" : "") + "</div>" + fields +
-    '<div data-r="legal">' + legalHtml(p) + '</div><div class="chips" data-r="chips">' + chipsHtml(p) + '</div><div class="ai" data-r="ai">' + aiHtml(p) + '</div><div class="foot" data-r="foot">' + footHtml(p) + "</div>";
+    '<div data-r="legal">' + legalHtml(p) + '</div><div data-r="sku">' + skuHtml(p) + '</div><div class="chips" data-r="chips">' + chipsHtml(p) + '</div><div class="ai" data-r="ai">' + aiHtml(p) + '</div><div class="foot" data-r="foot">' + footHtml(p) + "</div>";
 }
 function refreshCard(p) {
   const el = document.getElementById("c_" + p.id);
@@ -82,6 +97,7 @@ function refreshCard(p) {
     el.className = "card item" + (GATED.includes(p.estado) ? " appr" : "");
     el.querySelector("[data-r=chips]").innerHTML = chipsHtml(p);
     el.querySelector("[data-r=legal]").innerHTML = legalHtml(p);
+    el.querySelector("[data-r=sku]").innerHTML = skuHtml(p);
     el.querySelector("[data-r=ai]").innerHTML = aiHtml(p);
     const L = lim(p);
     mat(p).campos.forEach((c) => { const n = el.querySelector('[data-n="' + c.id + '"]'); if (n) { const v = (p.fields[c.id] || "").length, l = L[c.id]; n.textContent = v + (l ? "/" + l.max : ""); n.className = "cnt" + (l && v > (l.hasta || l.max) ? " over" : ""); } });
@@ -93,6 +109,7 @@ function visible(p) {
   if (filter === "pend") return isEmpty(p);
   if (filter === "noai") return !isEmpty(p) && !p.aiOk;
   if (filter === "ok") return GATED.includes(p.estado);
+  if (filter === "sku") return skuPending(p);
   return true;
 }
 function render() {
@@ -105,7 +122,7 @@ function render() {
 }
 function stats() {
   const filled = items.filter((p) => !isEmpty(p));
-  const S = [["Total", items.length], ["Por generar", items.length - filled.length], ["Con errores", filled.filter((p) => errCount(p) > 0).length], ["Sin verificar IA", filled.filter((p) => !p.aiOk).length], ["Aprobadas", items.filter((p) => GATED.includes(p.estado)).length]];
+  const S = [["Total", items.length], ["Por generar", items.length - filled.length], ["Con errores", filled.filter((p) => errCount(p) > 0).length], ["Sin verificar IA", filled.filter((p) => !p.aiOk).length], ["SKU por verificar", items.filter(skuPending).length], ["Aprobadas", items.filter((p) => GATED.includes(p.estado)).length]];
   $("#stats").innerHTML = S.map((a) => '<div class="st"><b>' + a[1] + "</b><span>" + a[0] + "</span></div>").join("");
   $("#gen").disabled = busy || S[1][1] === 0; $("#proof").disabled = busy || S[3][1] === 0;
   $("#fix").disabled = busy || filled.every((p) => !check(p).some((x) => x.s !== "ok" && !/Sin texto/.test(x.m)));
@@ -121,8 +138,14 @@ function onField(id, c, v) {
 }
 function onState(id, val) {
   const p = items.find((x) => x.id === id); if (!p) return;
-  if (GATED.includes(val) && !canApprove(p)) { msg("No se puede marcar «" + val + "»: la pieza tiene errores o falta la verificación de IA."); render(); return; }
+  if (GATED.includes(val) && !canApprove(p)) { msg("No se puede marcar «" + val + "»: la pieza tiene errores, falta la verificación de IA o hay SKU sin confirmar como «Disponible»."); render(); return; }
   p.estado = val; refreshCard(p);
+}
+function onSku(id, sku, field, val) {
+  const p = items.find((x) => x.id === id); if (!p) return;
+  p.skus = p.skus || {}; const o = (p.skus[sku] = Object.assign({ estado: "Sin verificar", url: "" }, p.skus[sku])); o[field] = val; o.fecha = new Date().toISOString().slice(0, 10);
+  if (GATED.includes(p.estado) && !canApprove(p)) { p.estado = "Por revisar"; msg("La pieza volvió a «Por revisar»: un SKU ya no está como «Disponible»."); }
+  refreshCard(p);
 }
 function onMat(id, val) {
   const p = items.find((x) => x.id === id); if (!p || !PACK.materiales[val]) return;
@@ -135,7 +158,7 @@ function onAct(a, id) {
   if (a === "apply" && p.aiSug) { Object.entries(p.aiSug).forEach(([k, v]) => { p.fields[k] = v.text; }); p.aiSug = null; p.aiOk = true; render(); }
 }
 $("#list").addEventListener("input", (e) => { const t = e.target; if (t.tagName === "TEXTAREA") onField(t.dataset.id, t.dataset.c, t.value); });
-$("#list").addEventListener("change", (e) => { const t = e.target; if (t.dataset && t.dataset.a === "st") onState(t.dataset.id, t.value); if (t.dataset && t.dataset.a === "mat") onMat(t.dataset.id, t.value); });
+$("#list").addEventListener("change", (e) => { const t = e.target; if (t.dataset && t.dataset.a === "st") onState(t.dataset.id, t.value); if (t.dataset && t.dataset.a === "mat") onMat(t.dataset.id, t.value); if (t.dataset && t.dataset.a === "skust") onSku(t.dataset.id, t.dataset.k, "estado", t.value); if (t.dataset && t.dataset.a === "skuurl") onSku(t.dataset.id, t.dataset.k, "url", t.value.trim()); });
 $("#list").addEventListener("click", (e) => { const b = e.target.closest && e.target.closest("button"); if (b && b.dataset.a) onAct(b.dataset.a, b.dataset.id); });
 document.querySelectorAll(".tabs button").forEach((b) => (b.onclick = () => { filter = b.dataset.f; shown = 60; document.querySelectorAll(".tabs button").forEach((x) => x.classList.toggle("on", x === b)); render(); }));
 $("#more").onclick = () => { shown += 60; render(); };
@@ -200,6 +223,49 @@ async function proof() {
 $("#gen").onclick = generate; $("#fix").onclick = fixAll; $("#proof").onclick = proof;
 $("#ping").onclick = async () => { msg("Probando…"); try { const d = await ai({ task: "ping" }); msg("Conexión OK: " + d.provider + " · " + d.model); } catch (e) { msg("Falló: " + e.message); } };
 
+/* ---------- referencias visuales ---------- */
+var IMGS = [], IMGRES = null;
+async function toJpeg(f) {
+  const bm = await createImageBitmap(f), k = Math.min(1, 1024 / Math.max(bm.width, bm.height));
+  const c = document.createElement("canvas"); c.width = Math.max(1, Math.round(bm.width * k)); c.height = Math.max(1, Math.round(bm.height * k));
+  const x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, c.width, c.height); x.drawImage(bm, 0, 0, c.width, c.height);
+  return c.toDataURL("image/jpeg", 0.72);
+}
+function renderThumbs() {
+  $("#thumbs").innerHTML = IMGS.map((m, i) => '<span><img src="' + m.url + '" alt="" style="height:64px;border-radius:8px;display:block"><button data-i="' + i + '" style="padding:2px 8px;font-size:12px;margin-top:2px">Quitar</button></span>').join("");
+  document.querySelectorAll("#thumbs button").forEach((b) => { b.onclick = () => { IMGS.splice(+b.dataset.i, 1); renderThumbs(); }; });
+}
+$("#imgs").onchange = async (e) => {
+  const fs = [...e.target.files].slice(0, 6 - IMGS.length); $("#imgmsg").textContent = "Preparando imágenes…";
+  try {
+    for (const f of fs) { const u = await toJpeg(f); IMGS.push({ name: f.name, mime: "image/jpeg", data: u.split(",")[1], url: u }); }
+    renderThumbs(); $("#imgmsg").textContent = IMGS.length + " imagen(es) lista(s).";
+  } catch (err) { $("#imgmsg").textContent = "No se pudo leer una imagen: " + err.message; }
+};
+$("#imgan").onclick = async () => {
+  if (!IMGS.length) { $("#imgmsg").textContent = "Primero sube al menos una imagen."; return; }
+  const size = IMGS.reduce((a, m) => a + m.data.length, 0); if (size > 3300000) { $("#imgmsg").textContent = "Las imágenes pesan demasiado: usa menos o más pequeñas."; return; }
+  $("#imgmsg").textContent = "Analizando " + IMGS.length + " imagen(es)…";
+  try {
+    IMGRES = await ai({ task: "imgstyle", confidential: $("#confmode").checked, images: IMGS.map((m) => ({ mime: m.mime, data: m.data })) });
+    renderImgRes(); $("#imgmsg").textContent = "Listo: revisa y aplica la guía.";
+  } catch (e) { $("#imgmsg").textContent = "Error al analizar: " + (e && e.message || "intenta de nuevo"); }
+};
+function renderImgRes() {
+  const r = IMGRES || {}, L = (k, v) => (Array.isArray(v) ? v.length : v) ? "<li><b>" + k + ":</b> " + esc(Array.isArray(v) ? v.join(" · ") : v) + "</li>" : "";
+  const ex = (r.ejemplos || r.textos_visibles || []).slice(0, 8);
+  $("#imgres").innerHTML = '<ul style="font-size:13px;color:var(--mut);padding-left:18px">' + L("Resumen", r.resumen) + L("Tono", r.tono) + L("Recursos del texto", r.recursos_del_texto) + L("Estilo visual", r.estilo_visual) + L("Particularidades", r.particularidades) + "</ul>" +
+    '<label>Guía propuesta (editable)</label><textarea id="imgguia" rows="4">' + esc(r.guia || "") + "</textarea>" +
+    (ex.length ? '<label style="margin-top:8px">Textos de ejemplo vistos en las imágenes: marca los que servirán de modelo</label>' + ex.map((e, j) => '<label class="ck" style="margin:4px 0;align-items:flex-start"><input type="checkbox" data-j="' + j + '" checked><span>' + esc(e.texto || "") + "</span></label>").join("") : "") +
+    '<div class="bar"><button class="p" id="imgapply">Aplicar a la guía adicional</button><span class="msg" id="imgapm"></span></div>';
+  $("#imgapply").onclick = () => {
+    const ch = [...document.querySelectorAll("#imgres input[data-j]:checked")].map((x) => ex[+x.dataset.j]).filter(Boolean);
+    const blk = "Referencias visuales:\n" + $("#imgguia").value.trim() + (ch.length ? "\nTextos de referencia (imítalos en tono y estructura, sin copiarlos):\n" + ch.map((e) => "- " + (e.material ? "[" + e.material + "] " : "") + e.texto).join("\n") : "");
+    $("#voz").value = ($("#voz").value.replace(/\n?Referencias visuales:[\s\S]*$/, "").trim() + "\n" + blk).trim();
+    persist(); $("#imgapm").textContent = "Aplicado a la guía adicional (se usará en la próxima generación).";
+  };
+}
+
 /* ---------- importación de la parrilla ---------- */
 const MAPF = [["semana", "Semana"], ["dia", "Día"], ["hora", "Hora"], ["categoria", "Categoría"], ["oferta", "Oferta"], ["material", "Tipo de material"], ["consideraciones", "Consideraciones"], ["segmento", "Segmento (solo para detectar SI-SI/SI-NO/NO-NO)"], ["sku", "SKU"]];
 function buildMaps() {
@@ -246,18 +312,18 @@ $("#mkpieces").onclick = () => {
   render();
 };
 $("#madd").onclick = () => {
-  const o = $("#mofe").value.trim(), c = $("#mcat").value.trim(); if (!o && !c) { msg("Escribe al menos la oferta o la categoría."); return; }
+  const o = $("#mofe").value.trim(), c = $("#mcat").value.trim(), sk = $("#msku").value.trim(); if (!o && !c) { msg("Escribe al menos la oferta o la categoría."); return; }
   const n = +$("#nvar").value || 1, segSel = $("#seg").value;
-  for (let i = 0; i < n; i++) items.push(newPiece($("#ciclo").value, $("#mmat").value, { categoria: c, oferta: o, consideraciones: $("#mcons").value.trim(), segKey: segSel !== "-" ? segSel : "" }));
+  for (let i = 0; i < n; i++) items.push(newPiece($("#ciclo").value, $("#mmat").value, { categoria: c, oferta: o, sku: sk, consideraciones: $("#mcons").value.trim(), segKey: segSel !== "-" ? segSel : "" }));
   $("#mofe").value = ""; render();
 };
 
 /* ---------- exportación a Excel ---------- */
 function exportRows(onlyOk) {
-  const head = ["Semana", "Día", "Hora", "Ciclo", "Tipo de material", "Categoría", "Oferta", "Título / Copy out título", "# carac. título", "Subtítulo (Copy out)", "Cuerpo / Copy in", "# carac. cuerpo", "CTA", "Legal", "Estado", "Alertas"];
+  const head = ["Semana", "Día", "Hora", "Ciclo", "Tipo de material", "Categoría", "Oferta", "SKU / disponibilidad", "Título / Copy out título", "# carac. título", "Subtítulo (Copy out)", "Cuerpo / Copy in", "# carac. cuerpo", "CTA", "Legal", "Estado", "Alertas"];
   const rows = items.filter((p) => !isEmpty(p) && (!onlyOk || GATED.includes(p.estado))).map((p) => {
     const F = p.fields, t = F.titulo || F.out_titulo || "", c = F.cuerpo || F.in || "";
-    return [p.brief.semana, p.brief.dia, p.brief.hora, (PACK.ciclos[p.ciclo] || {}).nombre, mat(p).nombre, p.brief.categoria, p.brief.oferta, t, t.length, F.out_subtitulo || "", c, c.length, F.cta || "", E.autoLegal(p, PACK, legalLib).texto, p.estado, check(p).map((x) => x.m).join(" | ")];
+    return [p.brief.semana, p.brief.dia, p.brief.hora, (PACK.ciclos[p.ciclo] || {}).nombre, mat(p).nombre, p.brief.categoria, p.brief.oferta, skuList(p).map((s) => s + " " + skuState(p, s)).join("; "), t, t.length, F.out_subtitulo || "", c, c.length, F.cta || "", E.autoLegal(p, PACK, legalLib).texto, p.estado, check(p).map((x) => x.m).join(" | ")];
   });
   return [head].concat(rows);
 }
@@ -270,6 +336,14 @@ $("#expo").onclick = () => {
   msg((data.length - 1) + " piezas exportadas.");
 };
 
+$("#expsku").onclick = () => {
+  const rows = [["Pieza", "Material", "Categoría", "SKU", "Enlace de búsqueda", "Estado", "URL del producto", "Fecha de verificación"]];
+  items.forEach((p) => skuList(p).forEach((s) => { const o = (p.skus || {})[s] || {}; rows.push([p.id, mat(p) ? mat(p).nombre : p.material, p.brief.categoria, s, skuLink(s), skuState(p, s), o.url || "", o.fecha || ""]); }));
+  if (rows.length < 2) { msg("Ninguna pieza tiene SKU."); return; }
+  if (!window.XLSX) { msg("No se pudo cargar el generador de Excel."); return; }
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), "SKU");
+  XLSX.writeFile(wb, "SKU_" + PACK.marca + "_" + $("#ciclo").value + "_" + new Date().toISOString().slice(0, 10) + ".xlsx"); msg((rows.length - 1) + " SKU exportados.");
+};
 /* ---------- reglas visibles, biblioteca legal y límites ---------- */
 function renderRules() {
   const c = PACK.ciclos[$("#ciclo").value] || {}, li = (a) => "<ul>" + (a || []).map((x) => "<li>" + esc(x) + "</li>").join("") + "</ul>";
@@ -291,19 +365,21 @@ function persist() {
   if (!loaded) return; clearTimeout(saveT);
   saveT = setTimeout(() => {
     try {
-      localStorage.setItem("contenido-pro:v1", JSON.stringify({ items: items.map((p) => ({ id: p.id, t: p.t, ciclo: p.ciclo, material: p.material, brief: p.brief, fields: p.fields, estado: p.estado, aiOk: !!p.aiOk })), cfg: { ciclo: $("#ciclo").value, seg: $("#seg").value, n: $("#nvar").value, voz: $("#voz").value, conf: $("#confmode").checked, sku: $("#usesku").checked }, legalLib, ovr }));
+      localStorage.setItem("contenido-pro:v1", JSON.stringify({ items: items.map((p) => ({ id: p.id, t: p.t, ciclo: p.ciclo, material: p.material, brief: p.brief, fields: p.fields, estado: p.estado, aiOk: !!p.aiOk, skus: p.skus || {} })), cfg: { skureq: $("#skureq").checked, skusite: $("#skusite").value, ciclo: $("#ciclo").value, seg: $("#seg").value, n: $("#nvar").value, voz: $("#voz").value, conf: $("#confmode").checked, sku: $("#usesku").checked }, legalLib, ovr }));
     } catch (e) { msg("No se pudo guardar en este navegador: exporta tu trabajo."); }
   }, 800);
 }
 function loadLocal() {
   try {
     const d = JSON.parse(localStorage.getItem("contenido-pro:v1") || "null"); if (!d) return;
-    items = (d.items || []).filter((p) => PACK.materiales[p.material]).map((p) => Object.assign({ aiSug: null }, p)); legalLib = d.legalLib || {}; ovr = d.ovr || {};
+    items = (d.items || []).filter((p) => PACK.materiales[p.material]).map((p) => Object.assign({ aiSug: null, skus: {} }, p)); legalLib = d.legalLib || {}; ovr = d.ovr || {};
     const c = d.cfg || {}; if (c.ciclo && PACK.ciclos[c.ciclo]) $("#ciclo").value = c.ciclo; if (c.seg) $("#seg").value = c.seg; if (c.n) $("#nvar").value = c.n; if (c.voz) $("#voz").value = c.voz;
-    $("#confmode").checked = c.conf !== false; $("#usesku").checked = !!c.sku;
+    $("#skureq").checked = c.skureq !== false; if (c.skusite) $("#skusite").value = c.skusite; $("#confmode").checked = c.conf !== false; $("#usesku").checked = !!c.sku;
   } catch (e) { /* sin datos previos */ }
 }
-["#voz", "#ciclo", "#seg", "#nvar", "#confmode", "#usesku"].forEach((s) => { $(s).addEventListener("input", persist); $(s).addEventListener("change", persist); });
+["#voz", "#ciclo", "#seg", "#nvar", "#confmode", "#usesku", "#skureq", "#skusite"].forEach((s) => { $(s).addEventListener("input", persist); $(s).addEventListener("change", persist); });
+
+["#skureq", "#skusite"].forEach((s) => $(s).addEventListener("change", () => PACK && render()));
 
 /* ---------- arranque ---------- */
 async function init() {

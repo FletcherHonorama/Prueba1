@@ -207,6 +207,11 @@
     for (const [re, c] of MAT_NAMES) if (re.test(s)) return c;
     return "";
   };
+  E.parseSkus = function (s) {
+    const out = [];
+    String(s || "").split(/[\s,;|]+/).forEach((t) => { t = t.replace(/^[^\w]+|[^\w]+$/g, ""); if (t.length >= 4 && /\d/.test(t) && !out.includes(t)) out.push(t); });
+    return out;
+  };
   E.segKey = function (text) { const m = String(text || "").match(/\b(SI|NO)\s?-\s?(SI|NO)\b/i); return m ? (m[1] + "-" + m[2]).toUpperCase() : ""; };
 
   root.Engine = E;
