@@ -1,0 +1,234 @@
+{
+  "marca": "shopinbaz",
+  "version": "Reglas actualizadas el 19 de agosto de 2026",
+  "alcance": "Aplican únicamente a shopinbaz. No incorporar reglas, nomenclaturas ni criterios de otras marcas o ecosistemas.",
+  "glosario": {
+    "marca": "shopinbaz",
+    "categorias": ["Telefonía", "Pantalla", "Celular", "Accesorios para Moto", "Línea Blanca"],
+    "minusculas": ["cel", "fon"],
+    "propios": ["Guardadito", "Credimax", "Buen Fin"],
+    "tokens": ["#NOMBRE#"],
+    "emojisProhibidos": ["🍆", "🍑", "💦", "😏", "🔞", "🥵", "👅", "😈", "🍒", "🍌"]
+  },
+  "globales": [
+    "Escribe siempre la marca como “shopinbaz”, en minúsculas.",
+    "Di siempre “descuento”; no uses “OFF” ni “dto.” (solo el ciclo ACTIVACIÓN permite “OFF” y “dto.”).",
+    "Categorías y Productos con mayúscula inicial cuando se nombren como tal: Telefonía, Pantalla, Celular, Accesorios para Moto, Línea Blanca, etc. Las abreviaciones coloquiales “cel” y “fon” van en minúsculas.",
+    "Ortografía impecable: acentos, signos de apertura y cierre (¿? ¡!), puntuación y concordancia. No sacrifiques ortografía por sonar informal.",
+    "Sin dobles espacios, palabras repetidas, signos duplicados, mayúsculas accidentales ni errores de tecleo.",
+    "Copia exactamente descuento, precio, pago semanal, vigencia, producto, modelo, monto o incentivo del brief; no redondees ni reinterpretes condiciones.",
+    "Si mencionas un pago semanal, indica siempre que es con préstamo.",
+    "Si mencionas meses sin intereses (MSI), indica siempre que es con tarjeta de crédito (TDC / tarjeta participante).",
+    "No prometas aprobación, disponibilidad, exclusividad, ahorro ni beneficio que el brief no respalde. No inventes semanalidades, MSI, escasez ni temporalidad.",
+    "Una sola idea principal por pieza: beneficio + producto/categoría + acción esperada.",
+    "Define primero el objetivo (awareness, consideración, compra, recompra, renovación, remarketing) y ajusta el tono. Usa hard sell solo cuando el objetivo sea conversión.",
+    "Tono cercano, claro, creativo y directo. Mexicanismos o recursos de tendencia solo si aportan claridad y encajan con la campaña.",
+    "Cierra con una acción clara cuando el formato lo permita (compra, entra, descubre, aprovecha, renueva, solicita, conoce). Evita CTAs enormes o genéricos.",
+    "Emojis: todos permitidos excepto los que aludan a algo sexual; no saturar; coherentes con producto, temporalidad y emoción; cuentan dentro del límite de caracteres.",
+    "Urgencia o exclusividad solo si la campaña la respalda; sin palabras de relleno que compitan con el beneficio.",
+    "Si hay legal, asterisco, restricción o vigencia, el copy no debe contradecirlo."
+  ],
+  "materiales": {
+    "PS": {
+      "nombre": "Push sencilla",
+      "campos": [
+        { "id": "titulo", "nombre": "Título", "max": 20, "hasta": 32 },
+        { "id": "cuerpo", "nombre": "Cuerpo", "max": 160 }
+      ],
+      "emojis": [2, 5],
+      "legal": false,
+      "reglas": [
+        "Mensaje breve de impacto inmediato: una sola idea, un beneficio claro y una acción concreta.",
+        "El título funciona por sí solo, es escaneable y no repite el cuerpo; debe entenderse aunque el cuerpo se trunque.",
+        "El beneficio principal aparece antes que las explicaciones secundarias; abre con producto, beneficio, oferta o insight relevante.",
+        "Usa verbos claros y activos. Urgencia, curiosidad o pertenencia solo si la campaña lo soporta.",
+        "No repitas el mismo precio, descuento o frase en título y cuerpo. No metas varias categorías (salvo que el brief lo pida) ni varias acciones.",
+        "Entre 2 y 5 emojis que sumen intención.",
+        "Patrón opcional de 4 bloques (solo en remarketing/exclusividad definidos): 1) regreso/contacto reciente, 2) refuerzo de acceso/pertenencia, 3) acción deseada usando el préstamo, 4) CTA claro."
+      ]
+    },
+    "PE": {
+      "nombre": "Push enriquecida",
+      "campos": [
+        { "id": "out_titulo", "nombre": "Copy out · Título", "max": 20, "hasta": 25 },
+        { "id": "out_subtitulo", "nombre": "Copy out · Subtítulo" },
+        { "id": "in", "nombre": "Copy in" },
+        { "id": "cta", "nombre": "CTA" }
+      ],
+      "legal": true,
+      "reglas": [
+        "Copy e imagen deben vender una sola historia; el mensaje debe seguir funcionando si la imagen no carga.",
+        "El Copy out (título + subtítulo) es el gancho creativo/emocional; no repite literalmente el Copy in.",
+        "El Copy in incluye Producto, Categoría o concepto principal y explica de forma sencilla; el texto dentro de la imagen es mínimo.",
+        "El CTA es corto y directo y no repite el mensaje del Copy out.",
+        "Un solo producto, descuento y modalidad de pago entre copy e imagen."
+      ]
+    },
+    "CN": {
+      "nombre": "Centro de notificaciones",
+      "campos": [
+        { "id": "titulo", "nombre": "Título", "max": 45 },
+        { "id": "cuerpo", "nombre": "Cuerpo", "max": 125 }
+      ],
+      "legal": false,
+      "reglas": [
+        "Se lee tiempo después del envío: conserva contexto y no dependas de la inmediatez (evita “hoy”, “ahorita”, “ya” si el mensaje puede seguir visible).",
+        "El título identifica producto/categoría o beneficio desde la lista; el cuerpo da contexto suficiente aunque el usuario no recuerde la push.",
+        "Jerarquía: beneficio → condición → acción. Si la oferta tiene fecha, la vigencia va explícita.",
+        "No copies una push tal cual: adáptala a lectura diferida."
+      ]
+    },
+    "INI": {
+      "nombre": "InApp imagen",
+      "campos": [
+        { "id": "titulo", "nombre": "Título", "max": 22 },
+        { "id": "cuerpo", "nombre": "Cuerpo", "max": 75 },
+        { "id": "cta", "nombre": "CTA", "max": 15 }
+      ],
+      "legal": true,
+      "reglas": [
+        "La oferta debe entenderse en pocos segundos; textos cortos y escaneables, sin muros de texto.",
+        "Prioridad visual a beneficio, producto y CTA; una sola oferta consistente entre título, cuerpo y CTA.",
+        "CTA con verbo claro."
+      ]
+    },
+    "INT": {
+      "nombre": "InApp texto",
+      "campos": [
+        { "id": "titulo", "nombre": "Título", "max": 25 },
+        { "id": "cuerpo", "nombre": "Cuerpo", "max": 100 },
+        { "id": "cta", "nombre": "CTA", "max": 15 }
+      ],
+      "legal": true,
+      "reglas": [
+        "El copy lleva el peso principal: directo, legible y orientado a acción; progresión beneficio → condición → CTA.",
+        "El cuerpo no repite el título con otras palabras sin añadir información; no escondas el dato comercial principal en el último renglón.",
+        "El CTA dice exactamente qué pasará al tocarlo; es corto y accionable."
+      ]
+    },
+    "WA": {
+      "nombre": "WhatsApp (botones)",
+      "campos": [
+        { "id": "out_titulo", "nombre": "Copy out · Título" },
+        { "id": "out_subtitulo", "nombre": "Copy out · Subtítulo" },
+        { "id": "in", "nombre": "Copy in" },
+        { "id": "cta", "nombre": "CTA" }
+      ],
+      "legal": true,
+      "reglas": ["Misma estructura que la push enriquecida: Copy out (título + subtítulo), Copy in, CTA y legal."]
+    },
+    "MA": {
+      "nombre": "Mailing",
+      "campos": [
+        { "id": "out_titulo", "nombre": "Copy out · Título" },
+        { "id": "out_subtitulo", "nombre": "Copy out · Subtítulo" },
+        { "id": "in", "nombre": "Copy in" },
+        { "id": "cta", "nombre": "CTA" }
+      ],
+      "legal": true,
+      "reglas": ["Misma estructura que la push enriquecida: Copy out (título + subtítulo), Copy in, CTA y legal."]
+    }
+  },
+  "ciclos": {
+    "ACTIVACION": {
+      "nombre": "Activación",
+      "valida": { "marca": "pieza", "permiteOFF": true },
+      "limites": { "CN": { "titulo": 20, "cuerpo": 100 } },
+      "reglas": [
+        "Siempre menciona shopinbaz.",
+        "Incluye SKU si no pones el nombre completo del producto.",
+        "Varía los títulos entre piezas.",
+        "Tono de urgencia + ahorro.",
+        "Producto/Categoría con mayúscula inicial.",
+        "Si hay pago semanal, di “con préstamo”.",
+        "Si hay MSI, comunícalos por separado y con su legal correspondiente.",
+        "Los superíndices deben coincidir con el legal correcto.",
+        "Incluye un CTA directo.",
+        "Genera sensación de FOMO cuando la promoción lo permita: pocas piezas, se acaba, por poco tiempo, oferta del día, top en ventas.",
+        "En este ciclo sí se puede usar “OFF” y “dto.”.",
+        "En Push: título máximo 20 caracteres y cuerpo 160. En Centro de Notificaciones: título máximo 20 y cuerpo máximo 100."
+      ]
+    },
+    "RECU_PN": {
+      "nombre": "Recu-Retención PN",
+      "valida": { "marca": "cuerpo", "segmentoVocab": true, "pagoLogic": true },
+      "segmentos": {
+        "SI-SI": "usuarios de Recuperación/Retención que ya compraron y llevan alrededor de 15 días sin WS. Usa “regresa / vuelve”.",
+        "SI-NO": "usuarios que todavía no hacen su primera compra y llevan alrededor de 51 días sin WS. Usa “tu primera compra”, “Haz tu primera compra”, “Tu primer…”, “Empieza…”.",
+        "NO-NO": "usuarios que nunca han entrado a shopinbaz y nunca han comprado. Usa “descubre / conoce / explora / entra a shopinbaz” (awareness)."
+      },
+      "reglas": [
+        "Título máximo 20 caracteres y cuerpo máximo 160. Siempre incluye shopinbaz en el cuerpo.",
+        "Adapta el mensaje al momento del usuario según el segmento (SI-SI, SI-NO, NO-NO).",
+        "Tono de ahorro, oportunidad, urgencia y regreso/descubrimiento, según el segmento. Emojis de producto, ahorro, urgencia o promoción.",
+        "El título no debe ser ambiguo: deja claro el beneficio o conecta directo con la oferta.",
+        "El segmento incluye usuarios CON y SIN préstamo: muestra alternativas de pago.",
+        "Si la promoción tiene semanalidades + MSI: comunica ambas (“desde $XX semanales con préstamo” + “hasta X MSI con TDC”).",
+        "Si solo tiene semanalidades: “desde $XX semanales con préstamo” + Guardadito.",
+        "Si tiene MSI pero no semanalidades: “hasta X MSI” + “podrías usar tu préstamo”.",
+        "Si no tiene semanalidades ni MSI: comunica préstamo + Guardadito.",
+        "Siempre “con préstamo” junto a una semanalidad; MSI siempre con TDC / tarjeta participante. No menciones MSI si la promoción no los tiene. No inventes semanalidades.",
+        "Si hay precio anterior y nuevo, aprovecha la baja de precio como gancho. Si hay porcentaje de descuento, deja claro sobre qué Producto/Categoría aplica."
+      ]
+    },
+    "RECU_PE": {
+      "nombre": "Recu-Retención PE",
+      "valida": { "legalEnriquecido": true },
+      "segmentos": {
+        "SI-SI": "tono hard sell, enfocado en oferta, precio, urgencia e incentivo para volver a comprar.",
+        "SI-NO": "tono comercial, de descubrimiento, tendencias y novedades; enfoque en “lo que te estás perdiendo”.",
+        "NO-NO": "tono comercial suave, cercano y aspiracional, con novedad, sorpresa y descubrimiento."
+      },
+      "reglas": [
+        "Evita repetir el mismo concepto entre OUT y CTA; el CTA no repite el mensaje del OUT.",
+        "En el IN incluye Producto, Categoría o concepto principal.",
+        "Si hay semanalidad, escribe “Desde $XX semanales con préstamo¹”. Si hay MSI, “O hasta X Meses…” / “Hasta X MSI²”. Si hay ambos, muestra ambos métodos. Si solo hay semanalidad, no inventes MSI. Si solo hay precio, no agregues beneficios que no estén en el brief.",
+        "Incluye fechas de vigencia cuando la promoción tenga temporalidad específica.",
+        "Incluye beneficios adicionales cuando existan (regalo, descuento adicional, Marca de la Semana) y su legal. Si hay regalo/promo limitada, indica la condición (p. ej. “Los primeros 50 pedidos…”).",
+        "CTA corto y directo: Comprar, Aprovecha hoy, Ver más, Pide el tuyo, Compra ahora, Conoce más.",
+        "Legal ¹ = préstamo (Credimax); legal ² = MSI/tarjetas participantes o TyC. Descuento adicional, regalo o promo especial usan el legal de TyC, no el de MSI. Incluye SKU si no pones el producto completo."
+      ]
+    },
+    "USO": {
+      "nombre": "Uso",
+      "valida": { "marca": "cuerpo", "prestamoEnCuerpo": true },
+      "limites": { "CN": { "titulo": 32, "cuerpo": 111 } },
+      "reglas": [
+        "Habla del préstamo desde el beneficio, no desde características financieras complejas; el préstamo es el medio para conseguir algo que el usuario quiere, no el fin del mensaje.",
+        "Cuando aplique, comunica que el usuario puede elegir cómo y cuándo pagar. Mezcla mensajes educativos + aspiracionales + comerciales según la apuesta.",
+        "Rutas posibles: “eso que quieres está más cerca”, “hazlo realidad”, “tú eliges qué estrenar”, “compra hoy y paga después”, “compra a tu ritmo”, “paga poco a poco”.",
+        "Si comunicas rapidez, refuerza que solicitarlo toma poco tiempo; aprovecha momentos como fin de semana. Incluye recordatorios de solicitud para quien ya conoce el beneficio pero no ha pedido el préstamo.",
+        "Usa #NOMBRE# cuando la pieza tenga personalización.",
+        "Push: Título + Cuerpo; título máximo 20, cuerpo máximo 160. El título es corto, accionable y enfocado en beneficio. El cuerpo menciona préstamo + shopinbaz + beneficio/acción. Si hay oferta de Producto: Producto + precio/oferta + semanalidad cuando corresponda (siempre “con préstamo”). CTAs verbales directos: Solicita, Pide, Estrena, Hazlo ya, Compra.",
+        "Centro de Notificaciones: Título + Cuerpo, foco en el beneficio de solicitar el préstamo; títulos de 20 a 32 caracteres, cuerpos de unos 107–111.",
+        "PN enriquecida / InApp / Mailing / WA botones: COPY OUT (Título + Subtítulo) + COPY IN + CTA + Legal. El OUT es gancho creativo/emocional, no repetición literal del IN. El IN explica muy sencillo qué puede hacer el usuario con su préstamo (estrenar, comprar, hacerlo realidad). CTA corto: Solicítalo ya, Pídelo aquí, Solicítalo.",
+        "Con préstamo en pieza enriquecida, incluye el legal de Credimax (¹); si hay MSI, también el de tarjetas participantes (²); no agregues legal de MSI si no hablas de MSI.",
+        "Tono casual, sencillo, cercano y optimista; sin lenguaje financiero complicado o institucional. Emojis de dinero, compra, producto, rapidez o emoción, sin saturar.",
+        "El usuario debe entender rápido: qué puede conseguir, cómo le ayuda el préstamo y qué debe hacer ahora."
+      ]
+    },
+    "DESVELADOS": {
+      "nombre": "Desvelados",
+      "valida": { "marca": "cuerpo", "nocturno": true },
+      "reglas": [
+        "Dirigido a usuarios que entran a la App de madrugada buscando descuentos, por ocio o compra impulsiva: dales la “excusa perfecta” para comprar. Genera FOMO; la oferta es especial o exclusiva de esa noche.",
+        "Usa lenguaje de noche, desvelo, dormir, luna, sueños y madrugada. Hooks de ejemplo: “Noche con estilo”, “¿Todavía despierto?”, “Aprovecha el desvelo”, “Noche fashion”, “Antes de dormir”, “Marca la hora de dormir”.",
+        "El concepto nocturno complementa la oferta, no la sustituye: siempre deja claro Producto/Categoría + beneficio comercial.",
+        "Push: Título + Copy; título hasta 20 caracteres, corto, nocturno, creativo y/o de urgencia; copy máximo 160 con shopinbaz dentro del cuerpo y el beneficio principal (descuento, semanalidad, MSI o producto destacado).",
+        "Semanalidad: “desde $XX semanales con préstamo”. MSI: alternativa distinta al préstamo (“con préstamo o hasta X MSI”; o “con tu préstamo o usa tu TDC” si la promoción lo permite).",
+        "Urgencia con “Se agotan”, “Antes de dormir”, “Aprovecha la noche”, “Solo esta noche”. No inventes escasez ni temporalidad que el brief no sustente. Trends o temporalidades solo con sentido: Hot Fashion, vacaciones, Maratón.",
+        "Enriquecidas (In App, Mailing, PN enriquecida, WA botones): Copy OUT (Título + Subtítulo, con temática de desvelo; sin repetir toda la información comercial del IN) + Copy IN + CTA + Legal.",
+        "Copy IN en este orden: concepto/tag (p. ej. Días Fashion) → Producto/Categoría o Marcas → descuento → MSI (si existen) → semanalidad con préstamo → CTA. Incluye SKU si no pones el nombre completo.",
+        "CTA corto y accionable (Explora, Ver oferta, Pide ya, Ver modelos) que no repita Título o Subtítulo.",
+        "Legal: ¹ préstamo (Credimax), ² MSI/tarjetas participantes; no incluyas un legal que no corresponda a los beneficios comunicados.",
+        "La pieza debe comunicar: “es de noche + hay una oportunidad que no quiero perder + puedo comprarla ahora en shopinbaz”."
+      ]
+    }
+  },
+  "legales": {
+    "L1": { "simbolo": "¹", "nombre": "Préstamo (Credimax)", "texto": "¹Credimax (Crédito al Consumo) es un producto de Banco Azteca S.A., Institución de Banca Múltiple. Sujeto a aprobación. Consulta requisitos de contratación, comisiones, tasa y CAT en www.bancoazteca.com.mx" },
+    "L2_MSI": { "simbolo": "²", "nombre": "MSI / tarjetas participantes", "texto": "" },
+    "L2_TYC": { "simbolo": "²", "nombre": "TyC (descuento adicional, regalo o promoción)", "texto": "²Consulta TyC en la sección de beneficios dentro de shopinbaz" }
+  },
+  "estados": ["Por revisar", "Revisado Proyectos", "Para ajustar", "Ajustado", "Aprobado Cliente", "Validado LEGAL"]
+}
