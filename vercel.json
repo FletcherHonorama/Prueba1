@@ -1,0 +1,4 @@
+{
+  "functions": { "api/ai.js": { "maxDuration": 60, "includeFiles": "rules/**" } },
+  "headers": [{ "source": "/(.*)", "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }] }]
+}
