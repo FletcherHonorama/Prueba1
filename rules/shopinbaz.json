@@ -4,11 +4,37 @@
   "alcance": "Aplican únicamente a shopinbaz. No incorporar reglas, nomenclaturas ni criterios de otras marcas o ecosistemas.",
   "glosario": {
     "marca": "shopinbaz",
-    "categorias": ["Telefonía", "Pantalla", "Celular", "Accesorios para Moto", "Línea Blanca"],
-    "minusculas": ["cel", "fon"],
-    "propios": ["Guardadito", "Credimax", "Buen Fin"],
-    "tokens": ["#NOMBRE#"],
-    "emojisProhibidos": ["🍆", "🍑", "💦", "😏", "🔞", "🥵", "👅", "😈", "🍒", "🍌"]
+    "categorias": [
+      "Telefonía",
+      "Pantalla",
+      "Celular",
+      "Accesorios para Moto",
+      "Línea Blanca"
+    ],
+    "minusculas": [
+      "cel",
+      "fon"
+    ],
+    "propios": [
+      "Guardadito",
+      "Credimax",
+      "Buen Fin"
+    ],
+    "tokens": [
+      "#NOMBRE#"
+    ],
+    "emojisProhibidos": [
+      "🍆",
+      "🍑",
+      "💦",
+      "😏",
+      "🔞",
+      "🥵",
+      "👅",
+      "😈",
+      "🍒",
+      "🍌"
+    ]
   },
   "globales": [
     "Escribe siempre la marca como “shopinbaz”, en minúsculas.",
@@ -32,10 +58,22 @@
     "PS": {
       "nombre": "Push sencilla",
       "campos": [
-        { "id": "titulo", "nombre": "Título", "max": 20, "hasta": 32 },
-        { "id": "cuerpo", "nombre": "Cuerpo", "max": 160 }
+        {
+          "id": "titulo",
+          "nombre": "Título",
+          "max": 20,
+          "hasta": 32
+        },
+        {
+          "id": "cuerpo",
+          "nombre": "Cuerpo",
+          "max": 160
+        }
       ],
-      "emojis": [2, 5],
+      "emojis": [
+        2,
+        5
+      ],
       "legal": false,
       "reglas": [
         "Mensaje breve de impacto inmediato: una sola idea, un beneficio claro y una acción concreta.",
@@ -50,10 +88,24 @@
     "PE": {
       "nombre": "Push enriquecida",
       "campos": [
-        { "id": "out_titulo", "nombre": "Copy out · Título", "max": 20, "hasta": 25 },
-        { "id": "out_subtitulo", "nombre": "Copy out · Subtítulo" },
-        { "id": "in", "nombre": "Copy in" },
-        { "id": "cta", "nombre": "CTA" }
+        {
+          "id": "out_titulo",
+          "nombre": "Copy out · Título",
+          "max": 20,
+          "hasta": 25
+        },
+        {
+          "id": "out_subtitulo",
+          "nombre": "Copy out · Subtítulo"
+        },
+        {
+          "id": "in",
+          "nombre": "Copy in"
+        },
+        {
+          "id": "cta",
+          "nombre": "CTA"
+        }
       ],
       "legal": true,
       "reglas": [
@@ -67,8 +119,16 @@
     "CN": {
       "nombre": "Centro de notificaciones",
       "campos": [
-        { "id": "titulo", "nombre": "Título", "max": 45 },
-        { "id": "cuerpo", "nombre": "Cuerpo", "max": 125 }
+        {
+          "id": "titulo",
+          "nombre": "Título",
+          "max": 45
+        },
+        {
+          "id": "cuerpo",
+          "nombre": "Cuerpo",
+          "max": 125
+        }
       ],
       "legal": false,
       "reglas": [
@@ -81,9 +141,21 @@
     "INI": {
       "nombre": "InApp imagen",
       "campos": [
-        { "id": "titulo", "nombre": "Título", "max": 22 },
-        { "id": "cuerpo", "nombre": "Cuerpo", "max": 75 },
-        { "id": "cta", "nombre": "CTA", "max": 15 }
+        {
+          "id": "titulo",
+          "nombre": "Título",
+          "max": 22
+        },
+        {
+          "id": "cuerpo",
+          "nombre": "Cuerpo",
+          "max": 75
+        },
+        {
+          "id": "cta",
+          "nombre": "CTA",
+          "max": 15
+        }
       ],
       "legal": true,
       "reglas": [
@@ -95,9 +167,21 @@
     "INT": {
       "nombre": "InApp texto",
       "campos": [
-        { "id": "titulo", "nombre": "Título", "max": 25 },
-        { "id": "cuerpo", "nombre": "Cuerpo", "max": 100 },
-        { "id": "cta", "nombre": "CTA", "max": 15 }
+        {
+          "id": "titulo",
+          "nombre": "Título",
+          "max": 25
+        },
+        {
+          "id": "cuerpo",
+          "nombre": "Cuerpo",
+          "max": 100
+        },
+        {
+          "id": "cta",
+          "nombre": "CTA",
+          "max": 15
+        }
       ],
       "legal": true,
       "reglas": [
@@ -109,31 +193,76 @@
     "WA": {
       "nombre": "WhatsApp (botones)",
       "campos": [
-        { "id": "out_titulo", "nombre": "Copy out · Título" },
-        { "id": "out_subtitulo", "nombre": "Copy out · Subtítulo" },
-        { "id": "in", "nombre": "Copy in" },
-        { "id": "cta", "nombre": "CTA" }
+        {
+          "id": "out_titulo",
+          "nombre": "Copy out · Título"
+        },
+        {
+          "id": "out_subtitulo",
+          "nombre": "Copy out · Subtítulo"
+        },
+        {
+          "id": "in",
+          "nombre": "Copy in"
+        },
+        {
+          "id": "cta",
+          "nombre": "CTA"
+        }
       ],
       "legal": true,
-      "reglas": ["Misma estructura que la push enriquecida: Copy out (título + subtítulo), Copy in, CTA y legal."]
+      "reglas": [
+        "Misma estructura que la push enriquecida: Copy out (título + subtítulo), Copy in, CTA y legal."
+      ]
     },
     "MA": {
       "nombre": "Mailing",
       "campos": [
-        { "id": "out_titulo", "nombre": "Copy out · Título" },
-        { "id": "out_subtitulo", "nombre": "Copy out · Subtítulo" },
-        { "id": "in", "nombre": "Copy in" },
-        { "id": "cta", "nombre": "CTA" }
+        {
+          "id": "out_titulo",
+          "nombre": "Copy out · Título"
+        },
+        {
+          "id": "out_subtitulo",
+          "nombre": "Copy out · Subtítulo"
+        },
+        {
+          "id": "in",
+          "nombre": "Copy in"
+        },
+        {
+          "id": "cta",
+          "nombre": "CTA"
+        }
       ],
       "legal": true,
-      "reglas": ["Misma estructura que la push enriquecida: Copy out (título + subtítulo), Copy in, CTA y legal."]
+      "reglas": [
+        "Misma estructura que la push enriquecida: Copy out (título + subtítulo), Copy in, CTA y legal."
+      ]
     }
   },
   "ciclos": {
+    "RETENCION": {
+      "nombre": "Retención",
+      "grupo": "Ciclos y áreas transversales",
+      "hereda": {
+        "PS": "RECU_PN",
+        "CN": "RECU_PN",
+        "default": "RECU_PE"
+      }
+    },
     "ACTIVACION": {
       "nombre": "Activación",
-      "valida": { "marca": "pieza", "permiteOFF": true },
-      "limites": { "CN": { "titulo": 20, "cuerpo": 100 } },
+      "valida": {
+        "marca": "pieza",
+        "permiteOFF": true
+      },
+      "limites": {
+        "CN": {
+          "titulo": 20,
+          "cuerpo": 100
+        }
+      },
       "reglas": [
         "Siempre menciona shopinbaz.",
         "Incluye SKU si no pones el nombre completo del producto.",
@@ -147,11 +276,132 @@
         "Genera sensación de FOMO cuando la promoción lo permita: pocas piezas, se acaba, por poco tiempo, oferta del día, top en ventas.",
         "En este ciclo sí se puede usar “OFF” y “dto.”.",
         "En Push: título máximo 20 caracteres y cuerpo 160. En Centro de Notificaciones: título máximo 20 y cuerpo máximo 100."
-      ]
+      ],
+      "grupo": "Ciclos y áreas transversales"
+    },
+    "CREDITO": {
+      "nombre": "Crédito",
+      "grupo": "Ciclos y áreas transversales",
+      "sinReglas": true
+    },
+    "NEGOCIO": {
+      "nombre": "Negocio",
+      "grupo": "Ciclos y áreas transversales",
+      "sinReglas": true
+    },
+    "USO": {
+      "nombre": "Uso",
+      "valida": {
+        "marca": "cuerpo",
+        "prestamoEnCuerpo": true
+      },
+      "limites": {
+        "CN": {
+          "titulo": 32,
+          "cuerpo": 111
+        }
+      },
+      "reglas": [
+        "Habla del préstamo desde el beneficio, no desde características financieras complejas; el préstamo es el medio para conseguir algo que el usuario quiere, no el fin del mensaje.",
+        "Cuando aplique, comunica que el usuario puede elegir cómo y cuándo pagar. Mezcla mensajes educativos + aspiracionales + comerciales según la apuesta.",
+        "Rutas posibles: “eso que quieres está más cerca”, “hazlo realidad”, “tú eliges qué estrenar”, “compra hoy y paga después”, “compra a tu ritmo”, “paga poco a poco”.",
+        "Si comunicas rapidez, refuerza que solicitarlo toma poco tiempo; aprovecha momentos como fin de semana. Incluye recordatorios de solicitud para quien ya conoce el beneficio pero no ha pedido el préstamo.",
+        "Usa #NOMBRE# cuando la pieza tenga personalización.",
+        "Push: Título + Cuerpo; título máximo 20, cuerpo máximo 160. El título es corto, accionable y enfocado en beneficio. El cuerpo menciona préstamo + shopinbaz + beneficio/acción. Si hay oferta de Producto: Producto + precio/oferta + semanalidad cuando corresponda (siempre “con préstamo”). CTAs verbales directos: Solicita, Pide, Estrena, Hazlo ya, Compra.",
+        "Centro de Notificaciones: Título + Cuerpo, foco en el beneficio de solicitar el préstamo; títulos de 20 a 32 caracteres, cuerpos de unos 107–111.",
+        "PN enriquecida / InApp / Mailing / WA botones: COPY OUT (Título + Subtítulo) + COPY IN + CTA + Legal. El OUT es gancho creativo/emocional, no repetición literal del IN. El IN explica muy sencillo qué puede hacer el usuario con su préstamo (estrenar, comprar, hacerlo realidad). CTA corto: Solicítalo ya, Pídelo aquí, Solicítalo.",
+        "Con préstamo en pieza enriquecida, incluye el legal de Credimax (¹); si hay MSI, también el de tarjetas participantes (²); no agregues legal de MSI si no hablas de MSI.",
+        "Tono casual, sencillo, cercano y optimista; sin lenguaje financiero complicado o institucional. Emojis de dinero, compra, producto, rapidez o emoción, sin saturar.",
+        "El usuario debe entender rápido: qué puede conseguir, cómo le ayuda el préstamo y qué debe hacer ahora."
+      ],
+      "grupo": "Ciclos y áreas transversales"
+    },
+    "RECUPERACION": {
+      "nombre": "Recuperación",
+      "grupo": "Ciclos y áreas transversales",
+      "hereda": {
+        "PS": "RECU_PN",
+        "CN": "RECU_PN",
+        "default": "RECU_PE"
+      }
+    },
+    "NATIVO": {
+      "nombre": "Nativo",
+      "grupo": "Ciclos y áreas transversales",
+      "sinReglas": true
+    },
+    "MERCADEO": {
+      "nombre": "Mercadeo",
+      "grupo": "Ciclos y áreas transversales",
+      "sinReglas": true
+    },
+    "ADOPS": {
+      "nombre": "AdOps",
+      "grupo": "Ciclos y áreas transversales",
+      "sinReglas": true
+    },
+    "DATA": {
+      "nombre": "Data",
+      "grupo": "Ciclos y áreas transversales",
+      "sinReglas": true
+    },
+    "CONTENT_BRAND": {
+      "nombre": "Content & brand",
+      "grupo": "Ciclos y áreas transversales",
+      "sinReglas": true
+    },
+    "EXPERIMENTOS": {
+      "nombre": "Experimentos RockS…",
+      "grupo": "Ciclos y áreas transversales",
+      "sinReglas": true,
+      "nota": "Nombre truncado en la captura: edítalo en rules/shopinbaz.json."
+    },
+    "USO_PRESTAMO": {
+      "nombre": "USO | Préstamo",
+      "grupo": "Ciclos y áreas transversales",
+      "hereda": "USO"
+    },
+    "WEB_ELEKTRA": {
+      "nombre": "WEB Elektra",
+      "grupo": "Ciclos y áreas transversales",
+      "sinReglas": true,
+      "otraMarca": true,
+      "aviso": "Este ciclo es de Elektra: las reglas de shopinbaz no se aplican (marca, «OFF», categorías, legales). Solo rigen ortografía, límites, cifras del brief y reglas universales."
+    },
+    "WEB_SHOPINBAZ": {
+      "nombre": "WEB shopinbaz",
+      "grupo": "Ciclos y áreas transversales",
+      "sinReglas": true
+    },
+    "APP_ELEKTRA": {
+      "nombre": "App Elektra",
+      "grupo": "Ciclos y áreas transversales",
+      "sinReglas": true,
+      "otraMarca": true,
+      "aviso": "Este ciclo es de Elektra: las reglas de shopinbaz no se aplican (marca, «OFF», categorías, legales). Solo rigen ortografía, límites, cifras del brief y reglas universales."
+    },
+    "PROMOCIONES": {
+      "nombre": "Promociones",
+      "grupo": "Ciclos y áreas transversales",
+      "sinReglas": true
+    },
+    "ECOMMERCE": {
+      "nombre": "E-commerce",
+      "grupo": "Ciclos y áreas transversales",
+      "sinReglas": true
+    },
+    "GTP": {
+      "nombre": "GTP",
+      "grupo": "Ciclos y áreas transversales",
+      "sinReglas": true
     },
     "RECU_PN": {
       "nombre": "Recu-Retención PN",
-      "valida": { "marca": "cuerpo", "segmentoVocab": true, "pagoLogic": true },
+      "valida": {
+        "marca": "cuerpo",
+        "segmentoVocab": true,
+        "pagoLogic": true
+      },
       "segmentos": {
         "SI-SI": "usuarios de Recuperación/Retención que ya compraron y llevan alrededor de 15 días sin WS. Usa “regresa / vuelve”.",
         "SI-NO": "usuarios que todavía no hacen su primera compra y llevan alrededor de 51 días sin WS. Usa “tu primera compra”, “Haz tu primera compra”, “Tu primer…”, “Empieza…”.",
@@ -169,11 +419,14 @@
         "Si no tiene semanalidades ni MSI: comunica préstamo + Guardadito.",
         "Siempre “con préstamo” junto a una semanalidad; MSI siempre con TDC / tarjeta participante. No menciones MSI si la promoción no los tiene. No inventes semanalidades.",
         "Si hay precio anterior y nuevo, aprovecha la baja de precio como gancho. Si hay porcentaje de descuento, deja claro sobre qué Producto/Categoría aplica."
-      ]
+      ],
+      "grupo": "Con reglas detalladas del documento de reglas"
     },
     "RECU_PE": {
       "nombre": "Recu-Retención PE",
-      "valida": { "legalEnriquecido": true },
+      "valida": {
+        "legalEnriquecido": true
+      },
       "segmentos": {
         "SI-SI": "tono hard sell, enfocado en oferta, precio, urgencia e incentivo para volver a comprar.",
         "SI-NO": "tono comercial, de descubrimiento, tendencias y novedades; enfoque en “lo que te estás perdiendo”.",
@@ -187,29 +440,15 @@
         "Incluye beneficios adicionales cuando existan (regalo, descuento adicional, Marca de la Semana) y su legal. Si hay regalo/promo limitada, indica la condición (p. ej. “Los primeros 50 pedidos…”).",
         "CTA corto y directo: Comprar, Aprovecha hoy, Ver más, Pide el tuyo, Compra ahora, Conoce más.",
         "Legal ¹ = préstamo (Credimax); legal ² = MSI/tarjetas participantes o TyC. Descuento adicional, regalo o promo especial usan el legal de TyC, no el de MSI. Incluye SKU si no pones el producto completo."
-      ]
-    },
-    "USO": {
-      "nombre": "Uso",
-      "valida": { "marca": "cuerpo", "prestamoEnCuerpo": true },
-      "limites": { "CN": { "titulo": 32, "cuerpo": 111 } },
-      "reglas": [
-        "Habla del préstamo desde el beneficio, no desde características financieras complejas; el préstamo es el medio para conseguir algo que el usuario quiere, no el fin del mensaje.",
-        "Cuando aplique, comunica que el usuario puede elegir cómo y cuándo pagar. Mezcla mensajes educativos + aspiracionales + comerciales según la apuesta.",
-        "Rutas posibles: “eso que quieres está más cerca”, “hazlo realidad”, “tú eliges qué estrenar”, “compra hoy y paga después”, “compra a tu ritmo”, “paga poco a poco”.",
-        "Si comunicas rapidez, refuerza que solicitarlo toma poco tiempo; aprovecha momentos como fin de semana. Incluye recordatorios de solicitud para quien ya conoce el beneficio pero no ha pedido el préstamo.",
-        "Usa #NOMBRE# cuando la pieza tenga personalización.",
-        "Push: Título + Cuerpo; título máximo 20, cuerpo máximo 160. El título es corto, accionable y enfocado en beneficio. El cuerpo menciona préstamo + shopinbaz + beneficio/acción. Si hay oferta de Producto: Producto + precio/oferta + semanalidad cuando corresponda (siempre “con préstamo”). CTAs verbales directos: Solicita, Pide, Estrena, Hazlo ya, Compra.",
-        "Centro de Notificaciones: Título + Cuerpo, foco en el beneficio de solicitar el préstamo; títulos de 20 a 32 caracteres, cuerpos de unos 107–111.",
-        "PN enriquecida / InApp / Mailing / WA botones: COPY OUT (Título + Subtítulo) + COPY IN + CTA + Legal. El OUT es gancho creativo/emocional, no repetición literal del IN. El IN explica muy sencillo qué puede hacer el usuario con su préstamo (estrenar, comprar, hacerlo realidad). CTA corto: Solicítalo ya, Pídelo aquí, Solicítalo.",
-        "Con préstamo en pieza enriquecida, incluye el legal de Credimax (¹); si hay MSI, también el de tarjetas participantes (²); no agregues legal de MSI si no hablas de MSI.",
-        "Tono casual, sencillo, cercano y optimista; sin lenguaje financiero complicado o institucional. Emojis de dinero, compra, producto, rapidez o emoción, sin saturar.",
-        "El usuario debe entender rápido: qué puede conseguir, cómo le ayuda el préstamo y qué debe hacer ahora."
-      ]
+      ],
+      "grupo": "Con reglas detalladas del documento de reglas"
     },
     "DESVELADOS": {
       "nombre": "Desvelados",
-      "valida": { "marca": "cuerpo", "nocturno": true },
+      "valida": {
+        "marca": "cuerpo",
+        "nocturno": true
+      },
       "reglas": [
         "Dirigido a usuarios que entran a la App de madrugada buscando descuentos, por ocio o compra impulsiva: dales la “excusa perfecta” para comprar. Genera FOMO; la oferta es especial o exclusiva de esa noche.",
         "Usa lenguaje de noche, desvelo, dormir, luna, sueños y madrugada. Hooks de ejemplo: “Noche con estilo”, “¿Todavía despierto?”, “Aprovecha el desvelo”, “Noche fashion”, “Antes de dormir”, “Marca la hora de dormir”.",
@@ -222,13 +461,40 @@
         "CTA corto y accionable (Explora, Ver oferta, Pide ya, Ver modelos) que no repita Título o Subtítulo.",
         "Legal: ¹ préstamo (Credimax), ² MSI/tarjetas participantes; no incluyas un legal que no corresponda a los beneficios comunicados.",
         "La pieza debe comunicar: “es de noche + hay una oportunidad que no quiero perder + puedo comprarla ahora en shopinbaz”."
-      ]
+      ],
+      "grupo": "Con reglas detalladas del documento de reglas"
     }
   },
   "legales": {
-    "L1": { "simbolo": "¹", "nombre": "Préstamo (Credimax)", "texto": "¹Credimax (Crédito al Consumo) es un producto de Banco Azteca S.A., Institución de Banca Múltiple. Sujeto a aprobación. Consulta requisitos de contratación, comisiones, tasa y CAT en www.bancoazteca.com.mx" },
-    "L2_MSI": { "simbolo": "²", "nombre": "MSI / tarjetas participantes", "texto": "" },
-    "L2_TYC": { "simbolo": "²", "nombre": "TyC (descuento adicional, regalo o promoción)", "texto": "²Consulta TyC en la sección de beneficios dentro de shopinbaz" }
+    "L1": {
+      "simbolo": "¹",
+      "nombre": "Préstamo (Credimax)",
+      "texto": "¹Credimax (Crédito al Consumo) es un producto de Banco Azteca S.A., Institución de Banca Múltiple. Sujeto a aprobación. Consulta requisitos de contratación, comisiones, tasa y CAT en www.bancoazteca.com.mx"
+    },
+    "L2_MSI": {
+      "simbolo": "²",
+      "nombre": "MSI / tarjetas participantes",
+      "texto": ""
+    },
+    "L2_TYC": {
+      "simbolo": "²",
+      "nombre": "TyC (descuento adicional, regalo o promoción)",
+      "texto": "²Consulta TyC en la sección de beneficios dentro de shopinbaz"
+    }
   },
-  "estados": ["Por revisar", "Revisado Proyectos", "Para ajustar", "Ajustado", "Aprobado Cliente", "Validado LEGAL"]
+  "estados": [
+    "Por revisar",
+    "Revisado Proyectos",
+    "Para ajustar",
+    "Ajustado",
+    "Aprobado Cliente",
+    "Validado LEGAL"
+  ],
+  "marcaOnly": [
+    0,
+    1,
+    2,
+    6,
+    7
+  ]
 }
