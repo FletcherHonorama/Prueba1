@@ -267,26 +267,67 @@ function renderImgRes() {
 }
 
 /* ---------- importación de la parrilla ---------- */
-const MAPF = [["semana", "Semana"], ["dia", "Día"], ["hora", "Hora"], ["categoria", "Categoría"], ["oferta", "Oferta"], ["material", "Tipo de material"], ["consideraciones", "Consideraciones"], ["segmento", "Segmento (solo para detectar SI-SI/SI-NO/NO-NO)"], ["sku", "SKU"]];
+const ROLES = [["", "(no usar)"], ["semana", "Semana"], ["dia", "Día"], ["hora", "Hora"], ["categoria", "Categoría"], ["oferta", "Oferta"], ["material", "Tipo de material"], ["consideraciones", "Consideraciones"], ["segmento", "Segmento (solo para detectar SI-SI / SI-NO / NO-NO)"], ["sku", "SKU"]];
+const clip = (s, n) => { s = String(s == null ? "" : s).replace(/\s+/g, " ").trim(); return s.length > n ? s.slice(0, n - 1) + "…" : s; };
+const hrowIdx = () => Math.max(1, +$("#hrow").value || 1) - 1;
+function readRoles() {
+  const col = {}; ROLES.forEach(([k]) => { if (k) col[k] = -1; });
+  (IMP.cols || []).forEach((i) => { const r = $("#r_" + i).value; if (r && col[r] < 0) col[r] = i; });
+  return col;
+}
+function updateImpInfo() {
+  const col = readRoles(), rows = IMP.rows.slice(hrowIdx() + 1);
+  const n = rows.filter((r) => (col.oferta >= 0 && E.cleanCell(r[col.oferta])) || (col.categoria >= 0 && E.cleanCell(r[col.categoria]))).length;
+  const dup = (IMP.cols || []).map((i) => $("#r_" + i).value).filter(Boolean).filter((r, k, arr) => arr.indexOf(r) !== k);
+  $("#impinfo").textContent = (col.oferta < 0 && col.categoria < 0 ? "Elige qué columna es la Oferta o la Categoría. " : n + " comunicaciones detectadas. ") +
+    (col.material < 0 ? "Sin columna de material: se usará el material de abajo. " : "") + (dup.length ? "Hay roles repetidos (" + [...new Set(dup)].join(", ") + "): se usa la primera columna." : "");
+}
 function buildMaps() {
-  const h = Math.max(1, +$("#hrow").value || 1) - 1, hdr = (IMP.rows[h] || []).map(String), guess = E.mapColumns(hdr);
-  $("#maps").innerHTML = MAPF.map(([k, n]) => "<div><label>" + n + '</label><select id="m_' + k + '"><option value="">(ninguna)</option>' + hdr.map((c, i) => c.trim() ? '<option value="' + i + '"' + (guess[k] === i ? " selected" : "") + ">" + esc(c.replace(/\s+/g, " ").slice(0, 40)) + "</option>" : "").join("") + "</select></div>").join("");
-  MAPF.forEach(([k]) => { const s = $("#m_" + k); if (s) s.value = guess[k] != null ? String(guess[k]) : ""; });
+  const h = hrowIdx(), hdr = (IMP.rows[h] || []).map(String), body = IMP.rows.slice(h + 1).filter((r) => r.some((c) => String(c).trim())), sample = body.slice(0, 4);
+  const guess = E.mapColumns(hdr), roleOf = {};
+  Object.entries(guess).forEach(([k, i]) => { if (ROLES.some((r) => r[0] === k) && !(i in roleOf)) roleOf[i] = k; });
+  IMP.cols = hdr.map((_, i) => i).filter((i) => hdr[i].trim() || sample.some((r) => String(r[i] || "").trim()));
+  $("#maps").innerHTML = "<label>Para cada columna de tu hoja, elige para qué se usa. Debajo de cada título ves los datos reales de las primeras filas.</label><div class=\"tw\"><table class=\"pv\"><thead><tr>" +
+    IMP.cols.map((i) => "<th>" + esc(clip(hdr[i] || "Columna " + (i + 1), 28)) + '<select id="r_' + i + '">' + ROLES.map(([k, n]) => '<option value="' + k + '">' + esc(n) + "</option>").join("") + "</select></th>").join("") + "</tr></thead><tbody>" +
+    (sample.length ? sample.map((r) => "<tr>" + IMP.cols.map((i) => "<td>" + esc(clip(E.cleanCell(r[i]), 60)) + "</td>").join("") + "</tr>").join("") : '<tr><td colspan="99">No hay filas debajo de la fila de encabezados.</td></tr>') + "</tbody></table></div>";
+  IMP.cols.forEach((i) => { const s = $("#r_" + i); s.value = roleOf[i] || ""; s.onchange = updateImpInfo; });
+  updateImpInfo();
 }
 function loadSheet(name) {
+  const ws = IMP.wb.Sheets[name]; let rb = 0, cb = 0;
+  try { const d = XLSX.utils.decode_range((ws && ws["!ref"]) || "A1"); rb = d.s.r; cb = d.s.c; } catch (e) { /* sin rango */ }
+  IMP.sheet = name; IMP.rowBase = rb; IMP.colBase = cb;
   IMP.rows = XLSX.utils.sheet_to_json(IMP.wb.Sheets[name], { header: 1, raw: false, defval: "", blankrows: true });
   const d = E.detectHeader(IMP.rows); $("#hrow").value = String(d >= 0 ? d + 1 : 1);
   $("#impmsg").textContent = d >= 0 ? "Encabezados detectados en la fila " + (d + 1) + "." : "No pude detectar los encabezados: indica la fila.";
+  const cid = E.cicloFromSheet(IMP.rows, PACK);
+  if (cid) { $("#ciclo").value = cid; renderRules(); renderCicloNote(); $("#impmsg").textContent += " Ciclo detectado en la hoja: " + PACK.ciclos[cid].nombre + "."; }
   buildMaps();
+}
+var ORIG = null;
+function openWorkbook(wb, meta) {
+  IMP = Object.assign({ wb, rows: [], cols: [], name: "archivo", kind: "xlsx" }, meta || {});
+  if (IMP.kind === "xlsx" && IMP.buf) ORIG = { name: IMP.name, buf: IMP.buf, wb };
+  $("#sheetSel").innerHTML = wb.SheetNames.map((n) => "<option>" + esc(n) + "</option>").join(""); $("#sheetSel").value = wb.SheetNames[0];
+  $("#impBox").style.display = "block"; loadSheet(wb.SheetNames[0]);
 }
 $("#file").onchange = async (e) => {
   const f = e.target.files[0]; if (!f) return; $("#impBox").style.display = "block"; $("#impmsg").textContent = "Leyendo…";
   try {
     if (!window.XLSX) throw new Error("No se pudo cargar el lector de Excel: guarda la hoja como CSV o revisa tu conexión.");
-    const wb = /\.csv$/i.test(f.name) ? XLSX.read(await f.text(), { type: "string" }) : XLSX.read(await f.arrayBuffer(), { type: "array" });
-    IMP = { wb, rows: [] };
-    $("#sheetSel").innerHTML = wb.SheetNames.map((n) => "<option>" + esc(n) + "</option>").join(""); $("#sheetSel").value = wb.SheetNames[0];
-    loadSheet(wb.SheetNames[0]);
+    if (/\.csv$/i.test(f.name)) openWorkbook(XLSX.read(await f.text(), { type: "string" }), { name: f.name, kind: "csv" });
+    else { const buf = await f.arrayBuffer(); openWorkbook(XLSX.read(buf, { type: "array" }), { name: f.name, kind: /\.xlsx$/i.test(f.name) ? "xlsx" : "xls", buf }); }
+  } catch (err) { $("#impmsg").textContent = err.message; }
+};
+$("#surlb").onclick = async () => {
+  const u = $("#surl").value.trim(); if (!u) return; $("#impBox").style.display = "block"; $("#impmsg").textContent = "Descargando hoja…";
+  try {
+    if (!CODE) { showLogin(); throw new Error("Falta el código de acceso"); }
+    const r = await fetch("/api/sheet", { method: "POST", headers: { "Content-Type": "application/json", "x-access-code": CODE }, body: JSON.stringify({ url: u }) });
+    if (r.status === 401) { sessionStorage.removeItem("acc"); CODE = ""; showLogin("Código incorrecto"); throw new Error("Código incorrecto"); }
+    const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || "No se pudo leer la hoja");
+    if (!window.XLSX) throw new Error("No se pudo cargar el lector de Excel.");
+    openWorkbook(XLSX.read(j.csv, { type: "string" }), { name: "Google Sheets", kind: "sheets" });
   } catch (err) { $("#impmsg").textContent = err.message; }
 };
 $("#sheetSel").onchange = () => IMP && loadSheet($("#sheetSel").value);
@@ -294,11 +335,12 @@ $("#hrow").onchange = () => IMP && buildMaps();
 $("#mkpieces").onclick = () => {
   if (!IMP) return;
   const h = Math.max(1, +$("#hrow").value || 1) - 1, col = {};
-  MAPF.forEach(([k]) => { const v = $("#m_" + k).value; col[k] = v === "" ? -1 : +v; });
+  Object.assign(col, readRoles());
   const get = (r, k) => (col[k] >= 0 ? E.cleanCell(r[col[k]]) : "");
   const n = +$("#nvar").value || 1, ciclo = $("#ciclo").value, segSel = $("#seg").value;
   let made = 0, skipped = 0, noMat = {}, total = 0;
-  for (const r of IMP.rows.slice(h + 1)) {
+  for (let ri = h + 1; ri < IMP.rows.length; ri++) {
+    const r = IMP.rows[ri];
     const b = { semana: get(r, "semana"), dia: get(r, "dia"), hora: get(r, "hora"), categoria: get(r, "categoria"), oferta: get(r, "oferta"), consideraciones: get(r, "consideraciones"), sku: get(r, "sku") };
     if (!b.oferta && !b.categoria) continue;
     total++;
@@ -306,7 +348,8 @@ $("#mkpieces").onclick = () => {
     const m = matCell ? E.materialFromCell(matCell, PACK) : $("#defmat").value;
     if (!m) { skipped++; noMat[matCell || "(vacío)"] = 1; continue; }
     b.segKey = E.segKey(col.segmento >= 0 ? r[col.segmento] : "") || (segSel !== "-" ? segSel : "");
-    for (let i = 0; i < n && items.length < 2000; i++) { items.push(newPiece(ciclo, m, Object.assign({}, b))); made++; }
+    const src = { sheet: IMP.sheet, row: IMP.rowBase + ri + 1, hdr: IMP.rowBase + h + 1, file: IMP.name, kind: IMP.kind };
+    for (let i = 0; i < n && items.length < 2000; i++) { const np = newPiece(ciclo, m, Object.assign({}, b)); np.src = src; items.push(np); made++; }
   }
   $("#impmsg").textContent = made + " piezas creadas de " + total + " comunicaciones" + (skipped ? ". Omitidas " + skipped + " por material sin reglas: " + Object.keys(noMat).join(", ") : "") + ".";
   render();
@@ -336,6 +379,80 @@ $("#expo").onclick = () => {
   msg((data.length - 1) + " piezas exportadas.");
 };
 
+/* ---------- exportar en el formato del archivo original ---------- */
+function exportTargets(onlyOk) {
+  const by = {}; let manual = 0, cand = 0;
+  items.filter((p) => !isEmpty(p) && (!onlyOk || GATED.includes(p.estado))).forEach((p) => {
+    if (!p.src) { manual++; return; }
+    cand++; const k = p.src.sheet + "|" + p.src.row;
+    if (!by[k] || (GATED.includes(p.estado) && !GATED.includes(by[k].estado))) by[k] = p;
+  });
+  const list = Object.values(by); return { list, manual, extra: cand - list.length };
+}
+function cellEdits(p, cols, colBase) {
+  const v = E.exportValues(p, PACK, legalLib), ed = [], row = p.src.row;
+  if (cols.map.cta == null && v.cta) { v.copyin = (v.copyin ? v.copyin + "\n" : "") + "CTA: " + v.cta; v.cta = ""; }
+  ["titulo", "copyout", "copyin", "cta", "legal"].forEach((role) => {
+    const j = cols.map[role], text = v[role]; if (j == null || !text) return;
+    const ref = E.colLetter(colBase + j) + row; ed.push({ ref, kind: "text", text });
+    const cj = cols.counts[role]; if (cj != null) ed.push({ ref: E.colLetter(colBase + cj) + row, kind: "len", n: text.length, formula: "+LEN(" + ref + ")" });
+  });
+  return ed;
+}
+function sheetRows(wb, name) {
+  const ws = wb.Sheets[name]; let rb = 0, cb = 0;
+  try { const d = XLSX.utils.decode_range((ws && ws["!ref"]) || "A1"); rb = d.s.r; cb = d.s.c; } catch (e) { /* sin rango */ }
+  return { rows: XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: "", blankrows: true }), rowBase: rb, colBase: cb };
+}
+function download(blob, name) { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click(); }
+const outName = (n, ext) => String(n || "archivo").replace(/\.[^.]+$/, "") + "_con-copies." + ext;
+function pickFile(accept) { return new Promise((res) => { const i = document.createElement("input"); i.type = "file"; i.accept = accept; i.onchange = () => res(i.files && i.files[0] || null); i.click(); }); }
+function summary(t, wrote, extra) {
+  return wrote + " comunicaciones escritas" + (t.extra ? ". " + t.extra + " variante(s) adicional(es) no caben en el formato original (se usó una por fila; las demás salen en «Exportar Excel (todas las piezas)»)" : "") +
+    (t.manual ? ". " + t.manual + " pieza(s) manual(es) sin fila de origen no se incluyeron" : "") + (extra ? ". " + extra : "") + ".";
+}
+async function exportXlsxInPlace(t) {
+  const name = t.list[0].src.file;
+  if (!ORIG || ORIG.name !== name) {
+    msg("Selecciona de nuevo el archivo original («" + name + "») para escribir los copies en él.");
+    const f = await pickFile(".xlsx"); if (!f) return;
+    const buf = await f.arrayBuffer(); ORIG = { name: f.name, buf, wb: XLSX.read(buf, { type: "array" }) };
+  }
+  const z = await JSZip.loadAsync(ORIG.buf), wbXml = await z.file("xl/workbook.xml").async("string"), rels = await z.file("xl/_rels/workbook.xml.rels").async("string");
+  let wrote = 0; const bad = [];
+  for (const sh of [...new Set(t.list.map((p) => p.src.sheet))]) {
+    const path = XPatch.sheetPathFor(wbXml, rels, sh), mine = t.list.filter((p) => p.src.sheet === sh);
+    const { rows, rowBase, colBase } = sheetRows(ORIG.wb, sh), cols = E.exportColumns(rows[mine[0].src.hdr - rowBase - 1] || []);
+    if (!path || !z.file(path) || (cols.map.titulo == null && cols.map.copyout == null && cols.map.copyin == null)) { bad.push(sh); continue; }
+    const r = XPatch.patchSheet(await z.file(path).async("string"), mine.flatMap((p) => cellEdits(p, cols, colBase)));
+    z.file(path, r.xml); wrote += mine.length - r.missing.length;
+  }
+  if (!wrote) { msg("No encontré columnas «Título», «Copy out» o «Copy in» en la hoja original; usa «Exportar Excel (todas las piezas)»."); return; }
+  z.file("xl/workbook.xml", XPatch.setFullCalc(wbXml));
+  download(await z.generateAsync({ type: "blob", compression: "DEFLATE" }), outName(ORIG.name, "xlsx"));
+  msg(summary(t, wrote, bad.length ? "Hojas sin columnas reconocidas: " + bad.join(", ") : ""));
+}
+function exportTabular(t, kind) {
+  const f0 = t.list[0].src;
+  if (!IMP || IMP.name !== f0.file) { msg("Vuelve a cargar el archivo o enlace original («" + f0.file + "») en el paso 02 para exportar en su formato."); return; }
+  const out = IMP.rows.map((r) => r.slice()), hi = f0.hdr - IMP.rowBase - 1, cols = E.exportColumns(out[hi] || []);
+  const LAB = { titulo: "Título", copyout: "Copy out", copyin: "Copy in", cta: "CTA", legal: "Legal" };
+  Object.keys(LAB).forEach((k) => { if (cols.map[k] == null && t.list.some((p) => E.exportValues(p, PACK, legalLib)[k])) { cols.map[k] = out[hi].length; out[hi].push(LAB[k]); } });
+  t.list.forEach((p) => {
+    const idx = p.src.row - IMP.rowBase - 1, v = E.exportValues(p, PACK, legalLib);
+    Object.keys(LAB).forEach((k) => { if (cols.map[k] == null || !v[k]) return; out[idx][cols.map[k]] = v[k]; if (cols.counts[k] != null) out[idx][cols.counts[k]] = v[k].length; });
+  });
+  const w = out.reduce((m, r) => Math.max(m, r.length), 0); out.forEach((r) => { while (r.length < w) r.push(""); });
+  if (kind === "csv") download(new Blob(["\ufeff" + out.map((r) => r.map((c) => '"' + String(c == null ? "" : c).replace(/"/g, '""') + '"').join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" }), outName(f0.file, "csv"));
+  else { const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(out), "Copies"); XLSX.writeFile(wb, outName(f0.file === "Google Sheets" ? "Google_Sheets" : f0.file, "xlsx")); }
+  msg(summary(t, t.list.length, kind === "sheets" ? "Se descargó un Excel con las mismas columnas (no se modifica tu Google Sheets)" : ""));
+}
+$("#expfmt").onclick = async () => {
+  const t = exportTargets($("#expOnly").checked);
+  if (!t.list.length) { msg(t.manual ? "Las piezas no vienen de un archivo importado: usa «Exportar Excel (todas las piezas)»." : $("#expOnly").checked ? "No hay piezas aprobadas para exportar." : "No hay piezas con texto para exportar."); return; }
+  try { const k = t.list[0].src.kind; if (k === "xlsx") await exportXlsxInPlace(t); else exportTabular(t, k === "csv" ? "csv" : "sheets"); }
+  catch (e) { msg("No se pudo exportar en el formato original: " + (e && e.message || e)); }
+};
 $("#expsku").onclick = () => {
   const rows = [["Pieza", "Material", "Categoría", "SKU", "Enlace de búsqueda", "Estado", "URL del producto", "Fecha de verificación"]];
   items.forEach((p) => skuList(p).forEach((s) => { const o = (p.skus || {})[s] || {}; rows.push([p.id, mat(p) ? mat(p).nombre : p.material, p.brief.categoria, s, skuLink(s), skuState(p, s), o.url || "", o.fecha || ""]); }));
@@ -345,10 +462,20 @@ $("#expsku").onclick = () => {
   XLSX.writeFile(wb, "SKU_" + PACK.marca + "_" + $("#ciclo").value + "_" + new Date().toISOString().slice(0, 10) + ".xlsx"); msg((rows.length - 1) + " SKU exportados.");
 };
 /* ---------- reglas visibles, biblioteca legal y límites ---------- */
+const baseIds = (id, d) => { const c = PACK.ciclos[id] || {}; if (!c.hereda || (d || 0) > 4) return [id]; const l = typeof c.hereda === "string" ? [c.hereda] : [...new Set(Object.values(c.hereda))]; return l.flatMap((i) => baseIds(i, (d || 0) + 1)); };
+function renderCicloSelect() {
+  const g = {}; Object.entries(PACK.ciclos).forEach(([k, v]) => { (g[v.grupo || "Ciclos"] = g[v.grupo || "Ciclos"] || []).push([k, v]); });
+  $("#ciclo").innerHTML = Object.entries(g).map(([n, l]) => '<optgroup label="' + esc(n) + '">' + l.map(([k, v]) => '<option value="' + k + '">' + esc(v.nombre) + "</option>").join("") + "</optgroup>").join("");
+}
+function renderCicloNote() {
+  const id = $("#ciclo").value, c = PACK.ciclos[id] || {}; let t = "";
+  if (c.otraMarca) t = c.aviso; else if (c.sinReglas) t = "Este ciclo no tiene reglas específicas cargadas: se aplican solo las reglas generales de " + PACK.marca + "."; else if (c.hereda) t = "Usa las reglas de " + baseIds(id).map((i) => PACK.ciclos[i].nombre).join(" y ") + (typeof c.hereda === "object" ? " (PN para Push sencilla y Centro de notificaciones; PE para el resto)." : ".");
+  $("#ciclonote").textContent = ((t || "") + " " + (c.nota || "")).trim();
+}
 function renderRules() {
-  const c = PACK.ciclos[$("#ciclo").value] || {}, li = (a) => "<ul>" + (a || []).map((x) => "<li>" + esc(x) + "</li>").join("") + "</ul>";
-  $("#rulesview").innerHTML = "<p class='msg'><b>" + esc(PACK.version) + ".</b> " + esc(PACK.alcance) + "</p><b>Reglas generales</b>" + li(PACK.globales) + "<b>Ciclo: " + esc(c.nombre || "") + "</b>" + li(c.reglas) +
-    (c.segmentos ? "<b>Segmentos</b>" + li(Object.entries(c.segmentos).map(([k, v]) => k + ": " + v)) : "");
+  const id = $("#ciclo").value, own = PACK.ciclos[id] || {}, li = (a) => "<ul>" + (a || []).map((x) => "<li>" + esc(x) + "</li>").join("") + "</ul>";
+  const cyc = own.otraMarca ? "" : baseIds(id).map((b) => { const c = PACK.ciclos[b] || {}; return "<b>Ciclo: " + esc(c.nombre || "") + "</b>" + li(c.reglas) + (c.segmentos ? "<b>Segmentos</b>" + li(Object.entries(c.segmentos).map(([k, v]) => k + ": " + v)) : ""); }).join("");
+  $("#rulesview").innerHTML = "<p class='msg'><b>" + esc(PACK.version) + ".</b> " + esc(PACK.alcance) + "</p><b>Reglas generales</b>" + li(own.otraMarca ? PACK.globales.filter((_, i) => !(PACK.marcaOnly || []).includes(i)) : PACK.globales) + cyc + (own.sinReglas && !own.hereda ? "<p class='msg'>Este ciclo no tiene reglas específicas cargadas.</p>" : "");
 }
 function renderLegal() {
   $("#legaled").innerHTML = Object.entries(PACK.legales).map(([k, v]) => "<label>" + esc(v.simbolo + " " + v.nombre) + '</label><textarea rows="2" data-k="' + k + '" placeholder="Pendiente de cargar">' + esc(legalLib[k] ? legalLib[k].texto : v.texto) + "</textarea>").join("");
@@ -358,14 +485,14 @@ function renderLimits() {
   $("#limgrid").innerHTML = "<table><tr><th>Material</th><th>Campo</th><th>Máx. por defecto</th><th>Tu ajuste</th></tr>" + Object.entries(PACK.materiales).flatMap(([k, m]) => m.campos.filter((c) => c.max).map((c) => "<tr><td>" + esc(m.nombre) + "</td><td>" + esc(c.nombre) + "</td><td>" + c.max + (c.hasta ? " (excepción " + c.hasta + ")" : "") + '</td><td><input type="number" min="1" data-m="' + k + '" data-c="' + c.id + '" value="' + ((ovr[k] || {})[c.id] || "") + '"></td></tr>')).join("") + "</table>";
   document.querySelectorAll("#limgrid input").forEach((i) => { i.oninput = () => { (ovr[i.dataset.m] = ovr[i.dataset.m] || {})[i.dataset.c] = +i.value || 0; render(); }; });
 }
-$("#ciclo").onchange = () => PACK && renderRules();
+$("#ciclo").onchange = () => { if (PACK) { renderRules(); renderCicloNote(); } };
 
 /* ---------- guardado local ---------- */
 function persist() {
   if (!loaded) return; clearTimeout(saveT);
   saveT = setTimeout(() => {
     try {
-      localStorage.setItem("contenido-pro:v1", JSON.stringify({ items: items.map((p) => ({ id: p.id, t: p.t, ciclo: p.ciclo, material: p.material, brief: p.brief, fields: p.fields, estado: p.estado, aiOk: !!p.aiOk, skus: p.skus || {} })), cfg: { skureq: $("#skureq").checked, skusite: $("#skusite").value, ciclo: $("#ciclo").value, seg: $("#seg").value, n: $("#nvar").value, voz: $("#voz").value, conf: $("#confmode").checked, sku: $("#usesku").checked }, legalLib, ovr }));
+      localStorage.setItem("contenido-pro:v1", JSON.stringify({ items: items.map((p) => ({ id: p.id, t: p.t, ciclo: p.ciclo, material: p.material, brief: p.brief, fields: p.fields, estado: p.estado, aiOk: !!p.aiOk, skus: p.skus || {}, src: p.src || null })), cfg: { skureq: $("#skureq").checked, skusite: $("#skusite").value, ciclo: $("#ciclo").value, seg: $("#seg").value, n: $("#nvar").value, voz: $("#voz").value, conf: $("#confmode").checked, sku: $("#usesku").checked }, legalLib, ovr }));
     } catch (e) { msg("No se pudo guardar en este navegador: exporta tu trabajo."); }
   }, 800);
 }
@@ -385,11 +512,11 @@ function loadLocal() {
 async function init() {
   PACK = await (await fetch("/rules/shopinbaz.json")).json();
   $("#packname").textContent = "Reglas de " + PACK.marca + " · " + PACK.version;
-  $("#ciclo").innerHTML = Object.entries(PACK.ciclos).map(([k, v]) => '<option value="' + k + '">' + esc(v.nombre) + "</option>").join("");
+  renderCicloSelect();
   $("#seg").innerHTML = '<option value="-">(no aplica)</option><option>SI-SI</option><option>SI-NO</option><option>NO-NO</option>';
   const mats = Object.entries(PACK.materiales).map(([k, v]) => '<option value="' + k + '">' + esc(v.nombre) + "</option>").join("");
   $("#mmat").innerHTML = mats; $("#defmat").innerHTML = '<option value="">(omitir filas sin material)</option>' + mats;
-  loadLocal(); loaded = true; renderRules(); renderLegal(); renderLimits(); render();
+  loadLocal(); loaded = true; renderRules(); renderCicloNote(); renderLegal(); renderLimits(); render();
   msg("Biblioteca local: " + items.length + " piezas (solo en este navegador).");
   if (!CODE) showLogin();
 }

@@ -34,7 +34,7 @@
     const m = pack.materiales[mat]; if (!m) return {};
     const out = {};
     m.campos.forEach((c) => { if (c.max) out[c.id] = { max: c.max, hasta: c.hasta }; });
-    const co = ((pack.ciclos[ciclo] || {}).limites || {})[mat] || {};
+    const co = ((E.cycle(pack, ciclo, mat) || {}).limites || {})[mat] || {};
     Object.keys(co).forEach((k) => { out[k] = Object.assign({}, out[k], { max: co[k] }); });
     const o = (ovr || {})[mat] || {};
     Object.keys(o).forEach((k) => { if (+o[k] > 0) out[k] = Object.assign({}, out[k], { max: +o[k] }); });
@@ -67,7 +67,7 @@
   };
   E.autoLegal = function (p, pack, lib) {
     const m = pack.materiales[p.material];
-    if (!m || !m.legal) return { texto: "", need: [], missing: [] };
+    if (!m || !m.legal || E.cycle(pack, p.ciclo, p.material).otraMarca) return { texto: "", need: [], missing: [] };
     const L = Object.assign({}, pack.legales, lib || {});
     const need = E.legalNeeds(copyFields(p, m));
     const texto = need.map((k) => (L[k] && L[k].texto || "").trim()).filter(Boolean).join("  ");
@@ -79,7 +79,7 @@
   /* ---------- Validación de una pieza ---------- */
   E.validate = function (p, pack, opts) {
     opts = opts || {};
-    const m = pack.materiales[p.material], ciclo = pack.ciclos[p.ciclo] || {}, val = ciclo.valida || {};
+    const m = pack.materiales[p.material], ciclo = E.cycle(pack, p.ciclo, p.material), val = ciclo.valida || {}, brand = !ciclo.otraMarca;
     const out = [], g = pack.glosario, F = p.fields || {};
     const err = (msg, campo) => out.push({ s: "err", m: msg, campo }), warn = (msg, campo) => out.push({ s: "warn", m: msg, campo });
     if (!m) { err("Material sin reglas definidas"); return out; }
@@ -98,19 +98,19 @@
         if (t.length > (l.hasta || l.max)) err(c.nombre + ": " + t.length + "/" + l.max + (l.hasta ? " (tope de excepción " + l.hasta + ")" : "") + " caracteres", c.id);
         else if (t.length > l.max) warn(c.nombre + ": " + t.length + "/" + l.max + " — excede la regla; solo válido como excepción (hasta " + l.hasta + ")", c.id);
       }
-      if (/shopinbaz/i.test(t)) (t.match(/shopinbaz/gi) || []).forEach((x) => { if (x !== g.marca) err(c.nombre + ": escribe «" + g.marca + "» en minúsculas (hay «" + x + "»)", c.id); });
-      if (!val.permiteOFF) {
+      if (brand && /shopinbaz/i.test(t)) (t.match(/shopinbaz/gi) || []).forEach((x) => { if (x !== g.marca) err(c.nombre + ": escribe «" + g.marca + "» en minúsculas (hay «" + x + "»)", c.id); });
+      if (brand && !val.permiteOFF) {
         if (/\bOFF\b/i.test(t)) err(c.nombre + ": di «descuento», no «OFF» (solo Activación lo permite)", c.id);
         if (/\bd(c)?tos?\b\.?/i.test(t)) err(c.nombre + ": di «descuento», no «dto.»", c.id);
       }
-      if (/\b(Cel|CEL|Fon|FON)\b/.test(t)) warn(c.nombre + ": «cel» y «fon» van en minúsculas", c.id);
-      g.categorias.forEach((cat) => {
+      if (brand && /\b(Cel|CEL|Fon|FON)\b/.test(t)) warn(c.nombre + ": «cel» y «fon» van en minúsculas", c.id);
+      if (brand) g.categorias.forEach((cat) => {
         const low = cat.charAt(0).toLowerCase() + cat.slice(1);
         if (new RegExp("(^|[^\\p{L}])" + low + "s?(?![\\p{L}])", "u").test(t)) warn(c.nombre + ": si «" + low + "» nombra la categoría/producto, usa mayúscula inicial («" + cat + "»)", c.id);
       });
       // modalidad de pago por campo
-      if (/semanal/i.test(t) && !/pr[eé]stamo/i.test(t)) err(c.nombre + ": si hay pago semanal debe decir «con préstamo»", c.id);
-      if (reMSI.test(t) && !/tarjeta|\bTDC\b/i.test(t)) err(c.nombre + ": si hay MSI debe decir «con tarjeta de crédito / TDC»", c.id);
+      if (brand && /semanal/i.test(t) && !/pr[eé]stamo/i.test(t)) err(c.nombre + ": si hay pago semanal debe decir «con préstamo»", c.id);
+      if (brand && reMSI.test(t) && !/tarjeta|\bTDC\b/i.test(t)) err(c.nombre + ": si hay MSI debe decir «con tarjeta de crédito / TDC»", c.id);
       if (/(\bOFF\b)/.test(t) === false && /\bgratis\b/i.test(t) && !/gratis/i.test(facts.txt)) warn(c.nombre + ": «gratis» no está respaldado por el brief", c.id);
     });
 
@@ -128,11 +128,11 @@
     if (bad.length) warn("Cifras que no aparecen en el brief: " + bad.join(", ") + " (verifica que coincidan exactamente)");
     // emojis
     const ne = countEmojis(all);
-    if (m.emojis && (ne < m.emojis[0] || ne > m.emojis[1])) warn("Emojis: " + ne + " (la regla pide " + m.emojis[0] + "–" + m.emojis[1] + ")");
+    if (brand && m.emojis && (ne < m.emojis[0] || ne > m.emojis[1])) warn("Emojis: " + ne + " (la regla pide " + m.emojis[0] + "–" + m.emojis[1] + ")");
     else if (ne > 5) warn("Muchos emojis (" + ne + "): evita saturar");
     (g.emojisProhibidos || []).forEach((x) => { if (all.includes(x)) err("Emoji no permitido (alusión sexual): " + x); });
     // variables de personalización
-    (all.match(/#[A-Za-zÁÉÍÓÚÑ]+#?/g) || []).forEach((tok) => {
+    if (brand) (all.match(/#[A-Za-zÁÉÍÓÚÑ]+#?/g) || []).forEach((tok) => {
       if (!g.tokens.includes(tok)) warn("Variable «" + tok + "» no reconocida (usa " + g.tokens.join(" o ") + ")");
     });
     // duplicados y repeticiones entre campos
@@ -159,7 +159,7 @@
     if (/aprobaci[oó]n (inmediata|garantizada)|te aprobamos|garantizad/i.test(all)) err("No prometas aprobación ni garantías que el brief no respalde");
 
     // legales
-    if (m.legal) {
+    if (m.legal && brand) {
       const lg = E.autoLegal(p, pack, opts.legalLib);
       lg.missing.forEach((k) => err("Falta cargar en la biblioteca el legal «" + ((pack.legales[k] || {}).nombre || k) + "»"));
       if (lg.need.includes("L2_MSI") && lg.need.includes("L2_TYC")) warn("Hay MSI y TyC a la vez: confirma la numeración de los legales (² y ³)");
@@ -167,7 +167,7 @@
       const want = new Set(lg.need.map((k) => ((pack.legales[k] || {}).simbolo)));
       want.forEach((s) => { if (s && !used.has(s)) err("Falta el superíndice " + s + " en el copy (corresponde a un legal que se incluirá)"); });
       used.forEach((s) => { if (!want.has(s)) err("El superíndice " + s + " no tiene legal correspondiente"); });
-    } else if (/[¹²]/.test(all)) warn("Hay superíndices en un material sin legal");
+    } else if (!m.legal && /[¹²]/.test(all)) warn("Hay superíndices en un material sin legal");
     // únicos
     return out.filter((x, i, a) => a.findIndex((y) => y.m === x.m) === i);
   };
@@ -213,6 +213,56 @@
     return out;
   };
   E.segKey = function (text) { const m = String(text || "").match(/\b(SI|NO)\s?-\s?(SI|NO)\b/i); return m ? (m[1] + "-" + m[2]).toUpperCase() : ""; };
+
+  /* ---------- ciclos (con herencia) ---------- */
+  E.baseCiclo = function (pack, id, mat, depth) {
+    const c = pack.ciclos[id] || {};
+    if (!c.hereda || (depth || 0) > 4) return c;
+    const h = typeof c.hereda === "string" ? c.hereda : (c.hereda[mat] || c.hereda.default);
+    return E.baseCiclo(pack, h, mat, (depth || 0) + 1);
+  };
+  E.cycle = function (pack, id, mat) {
+    const own = pack.ciclos[id] || {}, b = E.baseCiclo(pack, id, mat);
+    return Object.assign({}, b, { nombre: own.nombre || b.nombre, otraMarca: !!own.otraMarca, sinReglas: !!own.sinReglas, aviso: own.aviso, nota: own.nota });
+  };
+  const nrm = (c) => norm(c).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  E.cicloFromSheet = function (rows, pack) {
+    for (let i = 0; i < Math.min(rows.length, 30); i++) {
+      const r = rows[i] || [];
+      for (let j = 0; j < r.length; j++) {
+        if (/ciclo/.test(nrm(r[j]))) {
+          for (let k = j + 1; k < Math.min(r.length, j + 8); k++) {
+            const v = nrm(r[k]); if (!v) continue;
+            const hit = Object.entries(pack.ciclos).find(([, c]) => nrm(c.nombre) === v);
+            return hit ? hit[0] : "";
+          }
+          return "";
+        }
+      }
+    }
+    return "";
+  };
+
+  /* ---------- exportación en el formato del archivo de origen ---------- */
+  E.colLetter = (n) => { let s = ""; n = n + 1; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; };
+  E.exportColumns = function (hdr) {
+    const map = {}, counts = {}; let prev = null;
+    hdr.forEach((c, j) => {
+      const h = nrm(c); let role = null;
+      if (/^titulo$/.test(h)) role = "titulo";
+      else if (/^(copy out|mensaje|copy|cuerpo)$/.test(h)) role = "copyout";
+      else if (/^copy in$/.test(h)) role = "copyin";
+      else if (/^legal/.test(h)) role = "legal";
+      else if (/^cta$/.test(h)) role = "cta";
+      if (role && !(role in map)) { map[role] = j; prev = role; }
+      else if (!role && /^(#|largo)/.test(h) && !/ajustes|de com/.test(h) && prev && !(prev in counts)) counts[prev] = j;
+    });
+    return { map, counts };
+  };
+  E.exportValues = function (p, pack, lib) {
+    const F = p.fields || {};
+    return { titulo: (F.titulo || F.out_titulo || "").trim(), copyout: (F.cuerpo || F.out_subtitulo || "").trim(), copyin: (F.in || "").trim(), cta: (F.cta || "").trim(), legal: E.autoLegal(p, pack, lib).texto };
+  };
 
   root.Engine = E;
   if (typeof module !== "undefined" && module.exports) module.exports = E;

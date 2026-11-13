@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
-<title>Content Studio</title>
+<title>Estudio de contenido</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -48,6 +48,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 .msg{font-size:13px;color:var(--mut)}.tabs button.on{background:var(--tx);color:var(--bg)}
 details summary{cursor:pointer;color:var(--mut);font-size:13px;margin-top:8px}details ul{font-size:13px;color:var(--mut);padding-left:18px}
 .item.appr{border-color:var(--ok)}
+.tw{overflow-x:auto;border:1px solid var(--bd);border-radius:12px;margin-top:6px}.pv th{vertical-align:top;font-weight:600;min-width:150px}.pv th select{display:block;margin-top:6px;width:100%;font-size:12px;padding:4px}.pv td{font-size:12px;vertical-align:top;max-width:240px}
 table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:4px 6px;border-bottom:1px solid var(--bd);text-align:left}td input{width:90px}
 .ft{display:flex;justify-content:space-between;border-top:1px solid var(--bd);padding-top:16px;margin-top:30px;font-size:13px;color:var(--mut)}
 #lg{position:fixed;inset:0;background:var(--bg);display:none;align-items:center;justify-content:center;z-index:9}
@@ -57,9 +58,9 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:4px 6px;b
 <body>
 <div id="lg"><div><h2>Acceso</h2><label>Ingresa tu código de acceso</label><input type="text" id="lgi" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"><button class="p" id="lgb">Entrar</button><p class="msg" id="lgm"></p></div></div>
 <div class="w">
-<header class="top"><span class="brand">Content Studio</span><a class="pill" href="https://androspineda.com/">androspineda.com →</a></header>
+<header class="top"><span class="brand">Estudio de contenido</span><a class="pill" href="https://androspineda.com/">androspineda.com →</a></header>
 <div class="eyebrow" id="packname">Paquete de reglas</div>
-<h1>Content Studio</h1>
+<h1>Estudio de contenido</h1>
 <p class="sub">Importa tu parrilla, genera cada pieza con los campos y límites de su material, y revisa reglas de marca, legales y ortografía antes de entregar.</p>
 
 <div class="card">
@@ -69,6 +70,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:4px 6px;b
     <div><label>Segmento (Recu-Retención)</label><select id="seg"></select></div>
     <div><label>Variantes por comunicación</label><select id="nvar"><option>1</option><option>2</option><option>3</option></select></div>
   </div>
+  <p class="msg" id="ciclonote"></p>
   <div class="bar"><label class="ck"><input type="checkbox" id="confmode" checked> Modo confidencial (solo proveedores de IA autorizados)</label><label class="ck"><input type="checkbox" id="usesku"> Enviar SKU a la IA (solo si el copy debe incluirlos)</label></div>
   <div class="bar"><label class="ck"><input type="checkbox" id="skureq" checked> Exigir SKU verificado como «Disponible» para aprobar</label><label style="margin:0">Buscar cada SKU en Google junto con</label><input type="text" id="skusite" value="Elektra" style="max-width:160px"></div>
   <details><summary>Guía adicional para la IA (opcional)</summary><textarea id="voz" rows="3" placeholder="Matices del cliente, ejemplos aprobados, tono de la campaña…"></textarea></details>
@@ -84,11 +86,12 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:4px 6px;b
 
 <div class="card">
   <h2><i>02</i> Parrilla de comunicaciones</h2>
-  <label>Sube tu archivo (Excel o CSV). Se detectan hoja, fila de encabezados y columnas; audiencias y SKU no se envían a la IA.</label>
+  <label>Sube tu archivo (Excel o CSV) o pega el enlace de un Google Sheets. Se detectan hoja, fila de encabezados y columnas; audiencias y SKU no se envían a la IA.</label>
   <input type="file" id="file" accept=".xlsx,.xls,.csv">
+  <div class="row" style="margin-top:8px"><div style="flex:3 1 320px"><label>…o enlace de Google Sheets compartido como «Cualquier persona con el enlace: lector» (se carga la pestaña del enlace). Si el contenido es confidencial, descarga la hoja y súbela como archivo.</label><input type="text" id="surl" placeholder="https://docs.google.com/spreadsheets/d/…"></div><button id="surlb" style="flex:0 0 auto">Cargar enlace</button></div>
   <div id="impBox" style="display:none">
     <div class="row" style="margin-top:10px"><div><label>Hoja</label><select id="sheetSel"></select></div><div><label>Fila de encabezados</label><input type="number" id="hrow" min="1" value="1"></div><div><label>Material si la columna no lo indica</label><select id="defmat"></select></div></div>
-    <div class="row" id="maps" style="margin-top:10px"></div>
+    <div id="maps" style="margin-top:14px"></div><p class="msg" id="impinfo"></p>
     <div class="bar"><button class="p" id="mkpieces">Crear piezas</button><span class="msg" id="impmsg"></span></div>
   </div>
   <details><summary>O agrega una pieza manualmente</summary>
@@ -102,7 +105,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:4px 6px;b
   <div class="stats" id="stats"></div>
   <div class="bar tabs" style="margin:0 0 6px"><button data-f="all" class="on">Todas</button><button data-f="err">Con errores</button><button data-f="pend">Por generar</button><button data-f="noai">Sin verificar IA</button><button data-f="sku">SKU por verificar</button><button data-f="ok">Aprobadas</button></div>
   <div class="bar"><button class="p" id="gen">Generar textos</button><button id="fix">Corregir con IA las piezas con alertas</button><button id="proof">Verificar ortografía con IA</button><button id="stop">Detener</button><button id="ping">Probar conexión IA</button></div>
-  <div class="bar"><button id="expo">Exportar Excel</button><button id="expsku">Exportar lista de SKU a verificar</button><label class="ck"><input type="checkbox" id="expOnly"> solo aprobadas</label><span class="msg" id="rmsg"></span></div>
+  <div class="bar"><button class="p" id="expfmt">Exportar en el formato del archivo original</button><button id="expo">Exportar Excel (todas las piezas)</button><button id="expsku">Exportar lista de SKU a verificar</button><label class="ck"><input type="checkbox" id="expOnly"> solo aprobadas</label><span class="msg" id="rmsg"></span></div>
   <div id="list" style="margin-top:12px"></div>
   <div class="bar"><button id="more" style="display:none">Mostrar más</button></div>
 </div>
@@ -115,7 +118,9 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:4px 6px;b
 </div>
 <footer class="ft"><span>Andros Pineda</span><span>✦ androspineda.com</span></footer>
 </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="engine.js"></script>
+<script src="xlsxpatch.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
