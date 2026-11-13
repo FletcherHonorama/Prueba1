@@ -408,7 +408,7 @@ function download(blob, name) { const a = document.createElement("a"); a.href = 
 const outName = (n, ext) => String(n || "archivo").replace(/\.[^.]+$/, "") + "_con-copies." + ext;
 function pickFile(accept) { return new Promise((res) => { const i = document.createElement("input"); i.type = "file"; i.accept = accept; i.onchange = () => res(i.files && i.files[0] || null); i.click(); }); }
 function summary(t, wrote, extra) {
-  return wrote + " comunicaciones escritas" + (t.extra ? ". " + t.extra + " variante(s) adicional(es) no caben en el formato original (se usó una por fila; las demás salen en «Exportar Excel (todas las piezas)»)" : "") +
+  return wrote + " comunicaciones escritas" + (t.extra ? ". " + t.extra + " variante(s) adicional(es) no caben en el formato original (se usó una por fila; las demás salen en «Descargar resumen de todas las piezas»)" : "") +
     (t.manual ? ". " + t.manual + " pieza(s) manual(es) sin fila de origen no se incluyeron" : "") + (extra ? ". " + extra : "") + ".";
 }
 async function exportXlsxInPlace(t) {
@@ -427,7 +427,7 @@ async function exportXlsxInPlace(t) {
     const r = XPatch.patchSheet(await z.file(path).async("string"), mine.flatMap((p) => cellEdits(p, cols, colBase)));
     z.file(path, r.xml); wrote += mine.length - r.missing.length;
   }
-  if (!wrote) { msg("No encontré columnas «Título», «Copy out» o «Copy in» en la hoja original; usa «Exportar Excel (todas las piezas)»."); return; }
+  if (!wrote) { msg("No encontré columnas «Título», «Copy out» o «Copy in» en la hoja original; usa «Descargar resumen de todas las piezas»."); return; }
   z.file("xl/workbook.xml", XPatch.setFullCalc(wbXml));
   download(await z.generateAsync({ type: "blob", compression: "DEFLATE" }), outName(ORIG.name, "xlsx"));
   msg(summary(t, wrote, bad.length ? "Hojas sin columnas reconocidas: " + bad.join(", ") : ""));
@@ -449,7 +449,7 @@ function exportTabular(t, kind) {
 }
 $("#expfmt").onclick = async () => {
   const t = exportTargets($("#expOnly").checked);
-  if (!t.list.length) { msg(t.manual ? "Las piezas no vienen de un archivo importado: usa «Exportar Excel (todas las piezas)»." : $("#expOnly").checked ? "No hay piezas aprobadas para exportar." : "No hay piezas con texto para exportar."); return; }
+  if (!t.list.length) { msg(t.manual ? "Las piezas no vienen de un archivo importado: usa «Descargar resumen de todas las piezas»." : $("#expOnly").checked ? "No hay piezas aprobadas para exportar." : "No hay piezas con texto para exportar."); return; }
   try { const k = t.list[0].src.kind; if (k === "xlsx") await exportXlsxInPlace(t); else exportTabular(t, k === "csv" ? "csv" : "sheets"); }
   catch (e) { msg("No se pudo exportar en el formato original: " + (e && e.message || e)); }
 };
