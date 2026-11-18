@@ -48,6 +48,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 .msg{font-size:13px;color:var(--mut)}.tabs button.on{background:var(--pri);color:var(--prit)}
 details summary{cursor:pointer;color:var(--mut);font-size:13px;margin-top:8px}details ul{font-size:13px;color:var(--mut);padding-left:18px}
 .item.appr{border-color:var(--ok)}
+details.res{border-top:1px solid var(--bd);padding:2px 0}details.res>summary{color:var(--tx);font-weight:600;font-size:14px;margin:8px 0}details.res>summary .chip{margin-left:6px;font-weight:500}
 .tw{overflow-x:auto;border:1px solid var(--bd);border-radius:12px;margin-top:6px}.pv th{vertical-align:top;font-weight:600;min-width:150px}.pv th select{display:block;margin-top:6px;width:100%;font-size:12px;padding:4px}.pv td{font-size:12px;vertical-align:top;max-width:240px}
 table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:4px 6px;border-bottom:1px solid var(--bd);text-align:left}td input{width:90px}
 .ft{display:flex;justify-content:space-between;border-top:1px solid var(--bd);padding-top:16px;margin-top:30px;font-size:13px;color:var(--mut)}
@@ -75,18 +76,12 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:4px 6px;b
   <div class="bar"><label class="ck"><input type="checkbox" id="skureq" checked> Exigir SKU verificado como «Disponible» para aprobar</label><label style="margin:0">Buscar cada SKU en Google junto con</label><input type="text" id="skusite" value="Elektra" style="max-width:160px"></div>
   <details><summary>Guía adicional para la IA (opcional)</summary><textarea id="voz" rows="3" placeholder="Matices del cliente, ejemplos aprobados, tono de la campaña…"></textarea></details>
   <details><summary>Ver las reglas que sigue la IA</summary><div id="rulesview"></div></details>
-  <details><summary>Referencias visuales: imágenes de piezas anteriores</summary>
-    <p class="msg">Sube hasta 6 imágenes (banners, push, in-app). Se reducen en tu navegador y solo se envían a la IA cuando pulsas «Analizar». Evita imágenes con datos personales o confidenciales. Requiere un proveedor con visión (Gemini o Claude).</p>
-    <input type="file" id="imgs" accept="image/png,image/jpeg,image/webp" multiple>
-    <div class="bar" id="thumbs"></div>
-    <div class="bar"><button id="imgan">Analizar estilo de las imágenes con IA</button><span class="msg" id="imgmsg"></span></div>
-    <div id="imgres"></div>
-  </details>
 </div>
 
 <div class="card">
   <h2><i>02</i> Parrilla anterior autorizada (referencia de estilo y estructura)</h2>
-  <label>Sube una parrilla ya aprobada para que la IA entienda el tipo de resultado esperado: estilo, reglas y estructura. No se copian textos: se genera una guía y un detector avisa si una pieza nueva repite o se parece demasiado a una anterior. Usa solo material que tengas autorizado para este fin.</label>
+  <label>Sube una parrilla ya aprobada para que la IA entienda el estilo, las reglas y la estructura esperadas, sin copiar textos.</label>
+  <details><summary>Cómo funciona y qué se guarda</summary><p class="msg">Se calculan estadísticas, se genera una guía de estilo editable y se activa un detector que avisa si una pieza nueva repite o se parece demasiado a una anterior (solo se guardan huellas numéricas, no los textos). Usa únicamente material que tengas autorizado para este fin.</p></details>
   <input type="file" id="rfile" accept=".xlsx,.xls,.csv">
   <div id="rbox" style="display:none">
     <div class="row" style="margin-top:10px"><div><label>Hoja</label><select id="rsheet"></select></div><div><label>Fila de encabezados</label><input type="number" id="rhrow" min="1" value="1"></div><div><label>Material si la columna no lo indica</label><select id="rdefmat"></select></div></div>
@@ -95,7 +90,8 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:4px 6px;b
     <div class="bar"><button class="p" id="ranalyze">Analizar parrilla anterior</button><span class="msg" id="rmsg2"></span></div>
     <div id="rres"></div>
   </div>
-  <div class="bar"><label class="ck"><input type="checkbox" id="rex"> Incluir hasta 4 ejemplos literales al generar (mejora el parecido de estilo, pero aumenta el riesgo de repetir frases; el detector de similitud sigue activo)</label></div>
+  <div class="bar"><label class="ck"><input type="checkbox" id="rex"> Incluir hasta 4 ejemplos literales al generar</label></div>
+  <details><summary>¿Cuándo conviene activarlo?</summary><p class="msg">Mejora el parecido de estilo, pero aumenta el riesgo de repetir frases. El detector de similitud sigue activo en cualquier caso.</p></details>
   <div class="bar"><span class="msg" id="ractive">Sin referencia activa.</span><button id="rclear" style="display:none">Quitar referencia</button></div>
 </div>
 
@@ -103,7 +99,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:4px 6px;b
   <h2><i>03</i> Parrilla de comunicaciones</h2>
   <label>Sube tu archivo (Excel o CSV) o pega el enlace de un Google Sheets. Se detectan hoja, fila de encabezados y columnas; audiencias y SKU no se envían a la IA.</label>
   <input type="file" id="file" accept=".xlsx,.xls,.csv">
-  <div class="row" style="margin-top:8px"><div style="flex:3 1 320px"><label>…o enlace de Google Sheets compartido como «Cualquier persona con el enlace: lector» (se carga la pestaña del enlace). Si el contenido es confidencial, descarga la hoja y súbela como archivo.</label><input type="text" id="surl" placeholder="https://docs.google.com/spreadsheets/d/…"></div><button id="surlb" style="flex:0 0 auto">Cargar enlace</button></div>
+  <div class="row" style="margin-top:8px"><div style="flex:3 1 320px"><label>…o enlace de Google Sheets compartido como «Cualquier persona con el enlace: lector»</label><input type="text" id="surl" placeholder="https://docs.google.com/spreadsheets/d/…"></div><button id="surlb" style="flex:0 0 auto">Cargar enlace</button></div>
   <div id="impBox" style="display:none">
     <div class="row" style="margin-top:10px"><div><label>Hoja</label><select id="sheetSel"></select></div><div><label>Fila de encabezados</label><input type="number" id="hrow" min="1" value="1"></div><div><label>Material si la columna no lo indica</label><select id="defmat"></select></div></div>
     <div id="maps" style="margin-top:14px"></div><p class="msg" id="impinfo"></p>

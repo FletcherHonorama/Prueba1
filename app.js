@@ -231,49 +231,6 @@ async function proof() {
 $("#gen").onclick = generate; $("#fix").onclick = fixAll; $("#proof").onclick = proof;
 $("#ping").onclick = async () => { msg("Probando…"); try { const d = await ai({ task: "ping" }); msg("Conexión OK: " + d.provider + " · " + d.model); } catch (e) { msg("Falló: " + e.message); } };
 
-/* ---------- referencias visuales ---------- */
-var IMGS = [], IMGRES = null;
-async function toJpeg(f) {
-  const bm = await createImageBitmap(f), k = Math.min(1, 1024 / Math.max(bm.width, bm.height));
-  const c = document.createElement("canvas"); c.width = Math.max(1, Math.round(bm.width * k)); c.height = Math.max(1, Math.round(bm.height * k));
-  const x = c.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, c.width, c.height); x.drawImage(bm, 0, 0, c.width, c.height);
-  return c.toDataURL("image/jpeg", 0.72);
-}
-function renderThumbs() {
-  $("#thumbs").innerHTML = IMGS.map((m, i) => '<span><img src="' + m.url + '" alt="" style="height:64px;border-radius:8px;display:block"><button data-i="' + i + '" style="padding:2px 8px;font-size:12px;margin-top:2px">Quitar</button></span>').join("");
-  document.querySelectorAll("#thumbs button").forEach((b) => { b.onclick = () => { IMGS.splice(+b.dataset.i, 1); renderThumbs(); }; });
-}
-$("#imgs").onchange = async (e) => {
-  const fs = [...e.target.files].slice(0, 6 - IMGS.length); $("#imgmsg").textContent = "Preparando imágenes…";
-  try {
-    for (const f of fs) { const u = await toJpeg(f); IMGS.push({ name: f.name, mime: "image/jpeg", data: u.split(",")[1], url: u }); }
-    renderThumbs(); $("#imgmsg").textContent = IMGS.length + " imagen(es) lista(s).";
-  } catch (err) { $("#imgmsg").textContent = "No se pudo leer una imagen: " + err.message; }
-};
-$("#imgan").onclick = async () => {
-  if (!IMGS.length) { $("#imgmsg").textContent = "Primero sube al menos una imagen."; return; }
-  const size = IMGS.reduce((a, m) => a + m.data.length, 0); if (size > 3300000) { $("#imgmsg").textContent = "Las imágenes pesan demasiado: usa menos o más pequeñas."; return; }
-  $("#imgmsg").textContent = "Analizando " + IMGS.length + " imagen(es)…";
-  try {
-    IMGRES = await ai({ task: "imgstyle", confidential: $("#confmode").checked, images: IMGS.map((m) => ({ mime: m.mime, data: m.data })) });
-    renderImgRes(); $("#imgmsg").textContent = "Listo: revisa y aplica la guía.";
-  } catch (e) { $("#imgmsg").textContent = "Error al analizar: " + (e && e.message || "intenta de nuevo"); }
-};
-function renderImgRes() {
-  const r = IMGRES || {}, L = (k, v) => (Array.isArray(v) ? v.length : v) ? "<li><b>" + k + ":</b> " + esc(Array.isArray(v) ? v.join(" · ") : v) + "</li>" : "";
-  const ex = (r.ejemplos || r.textos_visibles || []).slice(0, 8);
-  $("#imgres").innerHTML = '<ul style="font-size:13px;color:var(--mut);padding-left:18px">' + L("Resumen", r.resumen) + L("Tono", r.tono) + L("Recursos del texto", r.recursos_del_texto) + L("Estilo visual", r.estilo_visual) + L("Particularidades", r.particularidades) + "</ul>" +
-    '<label>Guía propuesta (editable)</label><textarea id="imgguia" rows="4">' + esc(r.guia || "") + "</textarea>" +
-    (ex.length ? '<label style="margin-top:8px">Textos de ejemplo vistos en las imágenes: marca los que servirán de modelo</label>' + ex.map((e, j) => '<label class="ck" style="margin:4px 0;align-items:flex-start"><input type="checkbox" data-j="' + j + '" checked><span>' + esc(e.texto || "") + "</span></label>").join("") : "") +
-    '<div class="bar"><button class="p" id="imgapply">Aplicar a la guía adicional</button><span class="msg" id="imgapm"></span></div>';
-  $("#imgapply").onclick = () => {
-    const ch = [...document.querySelectorAll("#imgres input[data-j]:checked")].map((x) => ex[+x.dataset.j]).filter(Boolean);
-    const blk = "Referencias visuales:\n" + $("#imgguia").value.trim() + (ch.length ? "\nTextos de referencia (imítalos en tono y estructura, sin copiarlos):\n" + ch.map((e) => "- " + (e.material ? "[" + e.material + "] " : "") + e.texto).join("\n") : "");
-    $("#voz").value = ($("#voz").value.replace(/\n?Referencias visuales:[\s\S]*$/, "").trim() + "\n" + blk).trim();
-    persist(); $("#imgapm").textContent = "Aplicado a la guía adicional (se usará en la próxima generación).";
-  };
-}
-
 /* ---------- parrilla anterior autorizada ---------- */
 var RDR = null, RES = null;
 const RROLES = [["material", "Tipo de material"], ["categoria", "Categoría"], ["oferta", "Oferta"], ["consideraciones", "Consideraciones"], ["titulo", "Título"], ["copyout", "Copy out / Mensaje"], ["copyin", "Copy in"], ["cta", "CTA"], ["legal", "Legal"]];
@@ -322,17 +279,20 @@ function pickRefSample(recs) {
   return out.slice(0, 40);
 }
 function renderRes() {
-  const R = RES, ai_ = R.ai || {}, li = (a) => (a && a.length ? "<ul style='font-size:13px;color:var(--mut);padding-left:18px'>" + a.map((x) => "<li>" + esc(typeof x === "string" ? x : JSON.stringify(x)) + "</li>").join("") + "</ul>" : "");
-  const T = (k, v) => (Array.isArray(v) ? v.length : v) ? "<li><b>" + k + ":</b> " + esc(Array.isArray(v) ? v.join(" · ") : v) + "</li>" : "";
-  const st = "<b>Longitudes y recursos por campo</b><div class='tw'><table class='pv'><tr><th>Material · campo</th><th>Piezas</th><th>Mediana</th><th>P90</th><th>Máx.</th><th>Límite actual</th><th>Sobre el límite</th><th>Con emoji</th></tr>" +
+  const R = RES, ai_ = R.ai || {};
+  const T = (k, v) => ((Array.isArray(v) ? v.length : v) ? "<li><b>" + k + ":</b> " + esc(Array.isArray(v) ? v.join(" · ") : v) + "</li>" : "");
+  const sec = (title, badge, body) => '<details class="res"><summary>' + title + (badge != null ? ' <span class="chip inf">' + badge + "</span>" : "") + "</summary>" + body + "</details>";
+  const st = "<div class='tw'><table class='pv'><tr><th>Material · campo</th><th>Piezas</th><th>Mediana</th><th>P90</th><th>Máx.</th><th>Límite actual</th><th>Sobre el límite</th><th>Con emoji</th></tr>" +
     R.stats.map((s) => "<tr><td>" + esc(s.matNombre + " · " + s.campoNombre) + "</td><td>" + s.n + "</td><td>" + s.med + "</td><td>" + s.p90 + "</td><td>" + s.max + "</td><td>" + (s.limite || "—") + "</td><td>" + (s.pctSobre == null ? "—" : s.pctSobre + "%") + "</td><td>" + s.pctEmoji + "%</td></tr>").join("") + "</table></div>";
-  const al = "<b style='display:block;margin-top:10px'>Con tus reglas actuales, esta parrilla anterior habría generado estas alertas</b>" + (R.alertas.length ? "<ul style='font-size:13px;padding-left:18px'>" + R.alertas.map((a) => "<li><span class='chip " + a.s + "'>" + a.pct + "% de las piezas</span> " + esc(a.m) + "</li>").join("") + "</ul><p class='msg'>Si una alerta aparece en casi toda la parrilla aprobada, quizá sea una excepción real y conviene ajustar la regla o el límite en la sección 05.</p>" : "<p class='msg'>Sin alertas.</p>");
+  const al = R.alertas.length ? "<ul style='font-size:13px;padding-left:18px'>" + R.alertas.map((a) => "<li><span class='chip " + a.s + "'>" + a.pct + "% de las piezas</span> " + esc(a.m) + "</li>").join("") + "</ul><p class='msg'>Si una alerta aparece en casi toda la parrilla aprobada, quizá sea una excepción real y conviene ajustar la regla o el límite en la sección 05.</p>" : "<p class='msg'>Sin alertas.</p>";
+  const prof = R.ai ? "<ul style='font-size:13px;color:var(--mut);padding-left:18px'>" + T("Resumen", ai_.resumen) + T("Tono", ai_.tono) + T("Recursos", ai_.recursos) + T("Vocabulario recurrente", ai_.vocabulario_recurrente) + T("Cierres y CTA", ai_.cierres_y_cta) + T("Reglas observadas", ai_.reglas_observadas) + T("Posibles excepciones a las reglas vigentes", ai_.posibles_excepciones) + T("Particularidades", ai_.particularidades) + T("Patrones de estructura", ai_.patrones) + "</ul>" +
+    (Array.isArray(ai_.estructura_por_material) ? "<ul style='font-size:13px;color:var(--mut);padding-left:18px'>" + ai_.estructura_por_material.map((m) => "<li><b>" + esc(m.material) + ":</b> " + esc((m.campos || []).map((c) => c.campo + " → " + c.patron + (c.longitud_tipica ? " (" + c.longitud_tipica + ")" : "")).join(" | ")) + "</li>").join("") + "</ul>" : "") : "";
   const ex = (ai_.ejemplos || []).slice(0, 6);
-  const prof = R.ai ? "<b style='display:block;margin-top:10px'>Perfil de estilo y estructura (IA)</b><ul style='font-size:13px;color:var(--mut);padding-left:18px'>" + T("Resumen", ai_.resumen) + T("Tono", ai_.tono) + T("Recursos", ai_.recursos) + T("Vocabulario recurrente", ai_.vocabulario_recurrente) + T("Cierres y CTA", ai_.cierres_y_cta) + T("Reglas observadas", ai_.reglas_observadas) + T("Posibles excepciones a las reglas vigentes", ai_.posibles_excepciones) + T("Particularidades", ai_.particularidades) + T("Patrones de estructura", ai_.patrones) + "</ul>" +
-    (Array.isArray(ai_.estructura_por_material) ? "<ul style='font-size:13px;color:var(--mut);padding-left:18px'>" + ai_.estructura_por_material.map((m) => "<li><b>" + esc(m.material) + ":</b> " + esc((m.campos || []).map((c) => c.campo + " → " + c.patron + (c.longitud_tipica ? " (" + c.longitud_tipica + ")" : "")).join(" | ")) + "</li>").join("") + "</ul>" : "") +
-    '<label>Guía de estilo y estructura (editable; es lo que recibe la IA al generar)</label><textarea id="rguia" rows="5">' + esc(ai_.guia || "") + "</textarea>" +
-    (ex.length ? '<label style="margin-top:8px">Ejemplos literales (solo se usan si activas la casilla de ejemplos): marca los que servirán de referencia</label>' + ex.map((e, j) => '<label class="ck" style="margin:4px 0;align-items:flex-start"><input type="checkbox" data-j="' + j + '"><span>' + esc(e.texto || "") + "</span></label>").join("") : "") : "";
-  $("#rres").innerHTML = st + al + prof + '<div class="bar"><button class="p" id="rsave">Guardar como referencia activa</button><span class="msg" id="rsavem"></span></div>';
+  const guide = R.ai ? '<label style="margin-top:10px">Guía de estilo y estructura (editable; es lo que recibe la IA al generar)</label><textarea id="rguia" rows="5">' + esc(ai_.guia || "") + "</textarea>" +
+    (ex.length ? '<details class="res"><summary>Ejemplos literales: marca los que servirán de referencia <span class="chip inf">' + ex.length + "</span></summary><p class='msg'>Solo se usan si activas la casilla «Incluir hasta 4 ejemplos literales al generar».</p>" + ex.map((e, j) => '<label class="ck" style="margin:4px 0;align-items:flex-start"><input type="checkbox" data-j="' + j + '"><span>' + esc(e.texto || "") + "</span></label>").join("") + "</details>" : "") : "";
+  $("#rres").innerHTML = '<details class="res" open><summary>Resultados del análisis (mostrar u ocultar)</summary>' +
+    sec("Longitudes y recursos por campo", R.stats.length + " campos", st) + sec("Con tus reglas actuales, esta parrilla anterior habría generado estas alertas", R.alertas.length, al) + (R.ai ? sec("Perfil de estilo y estructura (IA)", null, prof) : "") + "</details>" +
+    guide + '<div class="bar"><button class="p" id="rsave">Guardar como referencia activa</button><span class="msg" id="rsavem"></span></div>';
   $("#rsave").onclick = saveRef;
 }
 $("#ranalyze").onclick = async () => {
