@@ -30,7 +30,15 @@ function titlesFor(p) {
   items.forEach((o) => { if (o !== p && o.ciclo === p.ciclo && o.material === p.material) { const t = o.fields.titulo || o.fields.out_titulo; if (t) out.push(nz(t)); } });
   return out;
 }
-const check = (p) => (mat(p) ? E.validate(p, PACK, { ovr, legalLib, titles: titlesFor(p) }) : [{ s: "err", m: "Material sin reglas definidas" }]);
+var REF = null, REFX = null; const refCache = new Map();
+function check(p) {
+  if (!mat(p)) return [{ s: "err", m: "Material sin reglas definidas" }];
+  const base = E.validate(p, PACK, { ovr, legalLib, titles: titlesFor(p) });
+  if (!REFX) return base;
+  const key = p.id + "|" + JSON.stringify(p.fields); let r = refCache.get(key);
+  if (!r) { if (refCache.size > 5000) refCache.clear(); r = E.refIssues(p, PACK, REFX); refCache.set(key, r); }
+  return r.length ? base.concat(r) : base;
+}
 const errCount = (p) => check(p).filter((x) => x.s === "err").length;
 const skuList = (p) => E.parseSkus(p.brief && p.brief.sku);
 const skuState = (p, s) => ((p.skus || {})[s] || {}).estado || "Sin verificar";
@@ -184,7 +192,7 @@ async function runAI(task, pieces, label) {
       const list = byC[c];
       for (let i = 0; i < list.length && !stopFlag; i += 4) {
         const ch = list.slice(i, i + 4); msg(label + " " + Math.min(done + ch.length, pieces.length) + " de " + pieces.length + "…");
-        const res = await ai({ task, ciclo: c, voz: $("#voz").value, confidential: $("#confmode").checked, chunk: ch.map((p, k) => entry(p, k, task === "fix")) });
+        const res = await ai({ task, ciclo: c, voz: $("#voz").value, estilo: REF ? REF.guia : "", ejemplos: REF && $("#rex").checked ? REF.ejemplos || [] : [], confidential: $("#confmode").checked, chunk: ch.map((p, k) => entry(p, k, task === "fix")) });
         (res || []).forEach((o) => { const p = ch[o.i]; if (p && o.campos) applyFields(p, o.campos); });
         done += ch.length; render();
       }
@@ -264,6 +272,98 @@ function renderImgRes() {
     $("#voz").value = ($("#voz").value.replace(/\n?Referencias visuales:[\s\S]*$/, "").trim() + "\n" + blk).trim();
     persist(); $("#imgapm").textContent = "Aplicado a la guía adicional (se usará en la próxima generación).";
   };
+}
+
+/* ---------- parrilla anterior autorizada ---------- */
+var RDR = null, RES = null;
+const RROLES = [["material", "Tipo de material"], ["categoria", "Categoría"], ["oferta", "Oferta"], ["consideraciones", "Consideraciones"], ["titulo", "Título"], ["copyout", "Copy out / Mensaje"], ["copyin", "Copy in"], ["cta", "CTA"], ["legal", "Legal"]];
+const rHrow = () => Math.max(1, +$("#rhrow").value || 1) - 1;
+function rGuess(hdr) { const a = E.mapColumns(hdr), b = E.exportColumns(hdr).map, g = {}; RROLES.forEach(([k]) => { const j = k in b ? b[k] : a[k]; if (j != null) g[k] = j; }); return g; }
+function readRRoles() { const c = {}; RROLES.forEach(([k]) => { const v = $("#rr_" + k).value; c[k] = v === "" ? -1 : +v; }); return c; }
+function rRecords() {
+  const c = readRRoles(), h = rHrow(), out = [], get = (r, k) => (c[k] >= 0 ? E.cleanCell(r[c[k]]) : "");
+  for (let ri = h + 1; ri < RDR.rows.length; ri++) {
+    const r = RDR.rows[ri], vals = { titulo: get(r, "titulo"), copyout: get(r, "copyout"), copyin: get(r, "copyin"), cta: get(r, "cta"), legal: get(r, "legal") };
+    if (!vals.titulo && !vals.copyout && !vals.copyin) continue;
+    const cell = c.material >= 0 ? String(r[c.material] || "").trim() : "", material = cell ? E.materialFromCell(cell, PACK) : $("#rdefmat").value;
+    if (!material) continue;
+    out.push({ row: RDR.rowBase + ri + 1, material, brief: { categoria: get(r, "categoria"), oferta: get(r, "oferta"), consideraciones: get(r, "consideraciones") }, vals });
+  }
+  return out;
+}
+function rInfo() {
+  const recs = rRecords(), by = {}; recs.forEach((r) => { by[r.material] = (by[r.material] || 0) + 1; });
+  $("#rinfo").textContent = recs.length ? recs.length + " piezas con copies detectadas · " + Object.entries(by).map(([k, n]) => PACK.materiales[k].nombre + ": " + n).join(" · ") + "." : "No encontré filas con copies: revisa la fila de encabezados y las columnas (Título, Copy out, Copy in).";
+}
+function buildRRoles() {
+  const h = rHrow(), hdr = (RDR.rows[h] || []).map(String), body = RDR.rows.slice(h + 1).filter((r) => r.some((c) => String(c).trim())), g = rGuess(hdr);
+  const ex = (i) => { const r = body.find((x) => String(x[i] || "").trim()); return r ? clip(E.cleanCell(r[i]), 24) : ""; };
+  const cols = hdr.map((_, i) => i).filter((i) => hdr[i].trim());
+  $("#rroles").innerHTML = RROLES.map(([k, n]) => "<div><label>" + n + '</label><select id="rr_' + k + '"><option value="">(ninguna)</option>' + cols.map((i) => '<option value="' + i + '">' + esc(clip(hdr[i], 26) + (ex(i) ? " — ej.: «" + ex(i) + "»" : "")) + "</option>").join("") + "</select></div>").join("");
+  RROLES.forEach(([k]) => { const s = $("#rr_" + k); s.value = g[k] != null ? String(g[k]) : ""; s.onchange = rInfo; });
+  rInfo();
+}
+function loadRSheet(n) { const s = sheetRows(RDR.wb, n); RDR.rows = s.rows; RDR.rowBase = s.rowBase; const d = E.detectHeader(RDR.rows); $("#rhrow").value = String(d >= 0 ? d + 1 : 1); buildRRoles(); }
+$("#rfile").onchange = async (e) => {
+  const f = e.target.files[0]; if (!f) return; $("#rbox").style.display = "block"; $("#rmsg2").textContent = "Leyendo…";
+  try {
+    if (!window.XLSX) throw new Error("No se pudo cargar el lector de Excel: guarda la hoja como CSV o revisa tu conexión.");
+    const wb = /\.csv$/i.test(f.name) ? XLSX.read(await f.text(), { type: "string" }) : XLSX.read(await f.arrayBuffer(), { type: "array" });
+    RDR = { wb, name: f.name, rows: [], rowBase: 0 }; $("#rsheet").innerHTML = wb.SheetNames.map((n) => "<option>" + esc(n) + "</option>").join(""); $("#rsheet").value = wb.SheetNames[0];
+    loadRSheet(wb.SheetNames[0]); $("#rmsg2").textContent = "";
+  } catch (err) { $("#rmsg2").textContent = err.message; }
+};
+$("#rsheet").onchange = () => RDR && loadRSheet($("#rsheet").value);
+$("#rhrow").onchange = () => RDR && buildRRoles();
+function pickRefSample(recs) {
+  const by = {}; recs.forEach((r) => { (by[r.material] = by[r.material] || []).push(r); });
+  const m = (t, n) => clip(E.maskPII(t), n), out = [];
+  Object.entries(by).forEach(([k, l]) => { const step = Math.max(1, Math.ceil(l.length / 14)); for (let i = 0, c = 0; i < l.length && c < 14; i += step, c++) { const r = l[i]; out.push({ m: k, categoria: m(r.brief.categoria, 60), oferta: m(r.brief.oferta, 160), consideraciones: m(r.brief.consideraciones, 80), titulo: m(r.vals.titulo, 300), copyout: m(r.vals.copyout, 300), copyin: m(r.vals.copyin, 300), cta: m(r.vals.cta, 60) }); } });
+  return out.slice(0, 40);
+}
+function renderRes() {
+  const R = RES, ai_ = R.ai || {}, li = (a) => (a && a.length ? "<ul style='font-size:13px;color:var(--mut);padding-left:18px'>" + a.map((x) => "<li>" + esc(typeof x === "string" ? x : JSON.stringify(x)) + "</li>").join("") + "</ul>" : "");
+  const T = (k, v) => (Array.isArray(v) ? v.length : v) ? "<li><b>" + k + ":</b> " + esc(Array.isArray(v) ? v.join(" · ") : v) + "</li>" : "";
+  const st = "<b>Longitudes y recursos por campo</b><div class='tw'><table class='pv'><tr><th>Material · campo</th><th>Piezas</th><th>Mediana</th><th>P90</th><th>Máx.</th><th>Límite actual</th><th>Sobre el límite</th><th>Con emoji</th></tr>" +
+    R.stats.map((s) => "<tr><td>" + esc(s.matNombre + " · " + s.campoNombre) + "</td><td>" + s.n + "</td><td>" + s.med + "</td><td>" + s.p90 + "</td><td>" + s.max + "</td><td>" + (s.limite || "—") + "</td><td>" + (s.pctSobre == null ? "—" : s.pctSobre + "%") + "</td><td>" + s.pctEmoji + "%</td></tr>").join("") + "</table></div>";
+  const al = "<b style='display:block;margin-top:10px'>Con tus reglas actuales, esta parrilla anterior habría generado estas alertas</b>" + (R.alertas.length ? "<ul style='font-size:13px;padding-left:18px'>" + R.alertas.map((a) => "<li><span class='chip " + a.s + "'>" + a.pct + "% de las piezas</span> " + esc(a.m) + "</li>").join("") + "</ul><p class='msg'>Si una alerta aparece en casi toda la parrilla aprobada, quizá sea una excepción real y conviene ajustar la regla o el límite en la sección 05.</p>" : "<p class='msg'>Sin alertas.</p>");
+  const ex = (ai_.ejemplos || []).slice(0, 6);
+  const prof = R.ai ? "<b style='display:block;margin-top:10px'>Perfil de estilo y estructura (IA)</b><ul style='font-size:13px;color:var(--mut);padding-left:18px'>" + T("Resumen", ai_.resumen) + T("Tono", ai_.tono) + T("Recursos", ai_.recursos) + T("Vocabulario recurrente", ai_.vocabulario_recurrente) + T("Cierres y CTA", ai_.cierres_y_cta) + T("Reglas observadas", ai_.reglas_observadas) + T("Posibles excepciones a las reglas vigentes", ai_.posibles_excepciones) + T("Particularidades", ai_.particularidades) + T("Patrones de estructura", ai_.patrones) + "</ul>" +
+    (Array.isArray(ai_.estructura_por_material) ? "<ul style='font-size:13px;color:var(--mut);padding-left:18px'>" + ai_.estructura_por_material.map((m) => "<li><b>" + esc(m.material) + ":</b> " + esc((m.campos || []).map((c) => c.campo + " → " + c.patron + (c.longitud_tipica ? " (" + c.longitud_tipica + ")" : "")).join(" | ")) + "</li>").join("") + "</ul>" : "") +
+    '<label>Guía de estilo y estructura (editable; es lo que recibe la IA al generar)</label><textarea id="rguia" rows="5">' + esc(ai_.guia || "") + "</textarea>" +
+    (ex.length ? '<label style="margin-top:8px">Ejemplos literales (solo se usan si activas la casilla de ejemplos): marca los que servirán de referencia</label>' + ex.map((e, j) => '<label class="ck" style="margin:4px 0;align-items:flex-start"><input type="checkbox" data-j="' + j + '"><span>' + esc(e.texto || "") + "</span></label>").join("") : "") : "";
+  $("#rres").innerHTML = st + al + prof + '<div class="bar"><button class="p" id="rsave">Guardar como referencia activa</button><span class="msg" id="rsavem"></span></div>';
+  $("#rsave").onclick = saveRef;
+}
+$("#ranalyze").onclick = async () => {
+  if (!RDR) return; const recs = rRecords();
+  if (!recs.length) { $("#rmsg2").textContent = "No encontré filas con material y copies. Revisa las columnas."; return; }
+  const ciclo = $("#ciclo").value;
+  RES = { recs, stats: E.refStats(recs, PACK, ciclo, ovr), alertas: E.refAlerts(recs, PACK, ciclo, { ovr, legalLib }), ai: null }; renderRes();
+  $("#rmsg2").textContent = "Analizando con IA…";
+  try {
+    RES.ai = await ai({ task: "refstyle", confidential: $("#confmode").checked, stats: RES.stats.map((s) => ({ m: s.material, campo: s.campo, n: s.n, med: s.med, p90: s.p90, max: s.max, limite: s.limite, sobre: s.pctSobre, emoji: s.pctEmoji })), records: pickRefSample(recs) });
+    $("#rmsg2").textContent = "Listo: revisa el perfil y guarda la referencia.";
+  } catch (e) { $("#rmsg2").textContent = "La IA no pudo analizar (" + (e && e.message || "error") + "). Puedes guardar igual el detector de similitud y las estadísticas."; }
+  renderRes();
+};
+function saveRefLS() { try { localStorage.setItem("contenido-pro:ref:v1", JSON.stringify(REF)); } catch (e) { msg("No se pudo guardar la referencia en este navegador."); } }
+function renderRefActive() {
+  $("#ractive").textContent = REF ? "Referencia activa: «" + REF.nombre + "» · " + REF.n + " piezas · " + REF.fecha + " · guía de " + (REF.guia || "").length + " caracteres · detector de similitud con " + REF.compact.length + " textos." : "Sin referencia activa.";
+  $("#rclear").style.display = REF ? "inline-block" : "none";
+}
+function saveRef() {
+  const ex = RES.ai && RES.ai.ejemplos ? [...document.querySelectorAll("#rres input[data-j]:checked")].map((x) => RES.ai.ejemplos[+x.dataset.j]).filter(Boolean).map((e) => e.texto) : [];
+  const compact = E.refRecords(RES.recs);
+  REF = { nombre: RDR.name, fecha: new Date().toISOString().slice(0, 10), n: RES.recs.length, guia: $("#rguia") ? $("#rguia").value.trim() : "", ejemplos: ex, alertas: RES.alertas.slice(0, 5), compact, incluir: $("#rex").checked };
+  REFX = E.buildRef(compact, REF.nombre); refCache.clear(); saveRefLS(); renderRefActive(); render();
+  $("#rsavem").textContent = "Referencia guardada: se usa al generar y el detector de similitud ya está activo.";
+}
+$("#rclear").onclick = () => { REF = null; REFX = null; refCache.clear(); try { localStorage.removeItem("contenido-pro:ref:v1"); } catch (e) { /* sin acceso */ } renderRefActive(); render(); };
+$("#rex").addEventListener("change", () => { if (REF) { REF.incluir = $("#rex").checked; saveRefLS(); } });
+function loadRef() {
+  try { const d = JSON.parse(localStorage.getItem("contenido-pro:ref:v1") || "null"); if (d && d.compact) { REF = d; REFX = E.buildRef(d.compact, d.nombre); $("#rex").checked = !!d.incluir; } } catch (e) { /* sin referencia */ }
+  renderRefActive();
 }
 
 /* ---------- importación de la parrilla ---------- */
@@ -516,7 +616,7 @@ async function init() {
   $("#seg").innerHTML = '<option value="-">(no aplica)</option><option>SI-SI</option><option>SI-NO</option><option>NO-NO</option>';
   const mats = Object.entries(PACK.materiales).map(([k, v]) => '<option value="' + k + '">' + esc(v.nombre) + "</option>").join("");
   $("#mmat").innerHTML = mats; $("#defmat").innerHTML = '<option value="">(omitir filas sin material)</option>' + mats;
-  loadLocal(); loaded = true; renderRules(); renderCicloNote(); renderLegal(); renderLimits(); render();
+  loadLocal(); loadRef(); $("#rdefmat").innerHTML = '<option value="">(omitir filas sin material)</option>' + Object.entries(PACK.materiales).map(([k, v]) => '<option value="' + k + '">' + esc(v.nombre) + "</option>").join(""); loaded = true; renderRules(); renderCicloNote(); renderLegal(); renderLimits(); render();
   msg("Biblioteca local: " + items.length + " piezas (solo en este navegador).");
   if (!CODE) showLogin();
 }

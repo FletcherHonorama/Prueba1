@@ -59,10 +59,11 @@
   const reL1 = /pr[eé]stamo|credimax/i, reMSI = /\bMSI\b|meses sin intereses/i, reTYC = /descuento adicional|regalo|cup[oó]n|bono|primeros \d+|promoci[oó]n limitada/i;
   E.legalNeeds = function (fields) {
     const t = Object.values(fields || {}).join(" \n ");
-    const need = [];
-    if (reL1.test(t)) need.push("L1");
-    if (reMSI.test(t)) need.push("L2_MSI");
-    if (reTYC.test(t)) need.push("L2_TYC");
+    const need = [], msi = reMSI.test(t), tyc = reTYC.test(t);
+    if (reL1.test(t) || /¹/.test(t)) need.push("L1");
+    if (msi) need.push("L2_MSI");
+    if (tyc) need.push("L2_TYC");
+    if (/²/.test(t) && !msi && !tyc) need.push("L2_TYC"); // un ² sin otra pista se interpreta como TyC (así se usa en las parrillas)
     return need;
   };
   E.autoLegal = function (p, pack, lib) {
@@ -162,6 +163,8 @@
     if (m.legal && brand) {
       const lg = E.autoLegal(p, pack, opts.legalLib);
       lg.missing.forEach((k) => err("Falta cargar en la biblioteca el legal «" + ((pack.legales[k] || {}).nombre || k) + "»"));
+      if (/²/.test(all) && !reMSI.test(all) && !reTYC.test(all)) warn("Superíndice ² sin MSI ni beneficio adicional en el texto: se insertará el legal de TyC; confirma que corresponde");
+      if (/¹/.test(all) && !reL1.test(all)) warn("Superíndice ¹ sin mención de préstamo o Credimax: se insertará el legal de Credimax; confirma que corresponde");
       if (lg.need.includes("L2_MSI") && lg.need.includes("L2_TYC")) warn("Hay MSI y TyC a la vez: confirma la numeración de los legales (² y ³)");
       const used = new Set((all.match(/[¹²]/g) || []));
       const want = new Set(lg.need.map((k) => ((pack.legales[k] || {}).simbolo)));
@@ -262,6 +265,86 @@
   E.exportValues = function (p, pack, lib) {
     const F = p.fields || {};
     return { titulo: (F.titulo || F.out_titulo || "").trim(), copyout: (F.cuerpo || F.out_subtitulo || "").trim(), copyin: (F.in || "").trim(), cta: (F.cta || "").trim(), legal: E.autoLegal(p, pack, lib).texto };
+  };
+
+  /* ---------- parrilla anterior autorizada: estadísticas, alertas y detector de similitud ---------- */
+  E.maskPII = function (t) {
+    return String(t || "").replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, "[EMAIL]").replace(/\b\d{18}\b/g, "[CLABE]").replace(/\b[A-ZÑ]{4}\d{6}[HM][A-Z]{5}[A-Z0-9]\d\b/gi, "[CURP]")
+      .replace(/\b[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}\b/gi, "[RFC]").replace(/\b\d{4}[ -]\d{4}[ -]\d{4}[ -]\d{1,4}\b/g, "[TARJETA]")
+      .replace(/(?:\+?52[\s.-]?)?\(?\d{2,3}\)?[\s.-]\d{3,4}[\s.-]\d{4}\b|\b\d{10}\b/g, "[TEL]");
+  };
+  /* Campos de una pieza a partir de las columnas Título / Copy out / Copy in / CTA de una parrilla */
+  E.fieldsFromRow = function (mat, v) {
+    const o = {}, set = (k, x) => { if (x && String(x).trim()) o[k] = String(x).trim(); };
+    if (["PE", "WA", "MA"].includes(mat)) { set("out_titulo", v.titulo); set("out_subtitulo", v.copyout); set("in", v.copyin); set("cta", v.cta); }
+    else { set("titulo", v.titulo); set("cuerpo", v.copyout); if (mat === "INI" || mat === "INT") set("cta", v.cta); }
+    return o;
+  };
+  const med = (a) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[Math.floor(s.length / 2)] : 0; };
+  const pct = (a, p) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[Math.min(s.length - 1, Math.ceil(p * s.length) - 1)] : 0; };
+  E.refStats = function (records, pack, ciclo, ovr) {
+    const by = {}; records.forEach((r) => { (by[r.material] = by[r.material] || []).push(r); });
+    const out = [];
+    Object.keys(by).forEach((mat) => {
+      const m = pack.materiales[mat]; if (!m) return;
+      const L = E.limits(pack, ciclo, mat, ovr), F = by[mat].map((r) => E.fieldsFromRow(mat, r.vals));
+      m.campos.forEach((c) => {
+        const lens = F.map((f) => (f[c.id] || "").length).filter((n) => n > 0); if (!lens.length) return;
+        const l = L[c.id], withE = F.filter((f) => f[c.id] && /\p{Extended_Pictographic}/u.test(f[c.id])).length;
+        out.push({ material: mat, matNombre: m.nombre, campo: c.id, campoNombre: c.nombre, n: lens.length, med: med(lens), p90: pct(lens, 0.9), max: Math.max(...lens), limite: l ? l.max : null, pctSobre: l ? Math.round(100 * lens.filter((n) => n > l.max).length / lens.length) : null, pctEmoji: Math.round(100 * withE / lens.length) });
+      });
+    });
+    return out;
+  };
+  E.refAlerts = function (records, pack, ciclo, opts) {
+    const cnt = {}; let total = 0;
+    records.slice(0, 1500).forEach((r) => {
+      const p = { ciclo, material: r.material, brief: r.brief || {}, fields: E.fieldsFromRow(r.material, r.vals) };
+      if (!Object.keys(p.fields).length) return; total++;
+      const seen = new Set();
+      E.validate(p, pack, Object.assign({}, opts)).forEach((x) => {
+        if (/Sin texto|Campo vacío/.test(x.m)) return;
+        const k = x.s + "|" + x.m.replace(/\d+/g, "N").replace(/«[^»]*»/g, "«…»").replace(/\(hasta N\)/g, ""); if (seen.has(k)) return; seen.add(k); cnt[k] = (cnt[k] || 0) + 1;
+      });
+    });
+    return Object.entries(cnt).map(([k, n]) => { const i = k.indexOf("|"); return { s: k.slice(0, i), m: k.slice(i + 1), n, pct: Math.round(100 * n / Math.max(1, total)) }; }).sort((a, b) => b.n - a.n).slice(0, 10);
+  };
+  /* Detector de similitud: guarda solo huellas (hashes) de n-gramas de palabras, no el texto */
+  E.words = (t) => String(t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9ñ\s]/g, " ").split(/\s+/).filter(Boolean);
+  E.hash = (s) => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+  E.shingles = (t, n) => { const w = E.words(t); n = n || 3; if (w.length < n) return []; const s = new Set(); for (let i = 0; i + n <= w.length; i++) s.add(E.hash(w.slice(i, i + n).join(" "))); return [...s]; };
+  E.refRecords = function (records) {
+    const out = [];
+    records.forEach((r) => ["titulo", "copyout", "copyin", "cta"].forEach((k) => {
+      const t = r.vals[k], w = E.words(t); if (w.length < 3) return;
+      out.push({ l: r.row, f: k, full: E.hash(w.join(" ")), n: w.length, s: E.shingles(t).slice(0, 40) });
+    }));
+    return out;
+  };
+  E.buildRef = function (compact, nombre) {
+    const idx = new Map(), byFull = new Map();
+    compact.forEach((r, i) => { if (!byFull.has(r.full)) byFull.set(r.full, i); r.s.forEach((h) => { let a = idx.get(h); if (!a) idx.set(h, (a = [])); a.push(i); }); });
+    return { records: compact, idx, byFull, nombre: nombre || "parrilla anterior" };
+  };
+  E.simCheck = function (text, ref) {
+    const w = E.words(text); if (w.length < 3) return null;
+    const ex = ref.byFull.get(E.hash(w.join(" "))); if (ex !== undefined) return { tipo: "exacto", n: w.length, rec: ref.records[ex] };
+    if (w.length < 6) return null;
+    const sh = E.shingles(text); if (!sh.length) return null; const hits = {};
+    sh.forEach((h) => (ref.idx.get(h) || []).forEach((i) => { hits[i] = (hits[i] || 0) + 1; }));
+    let best = null; Object.keys(hits).forEach((i) => { const r = hits[i] / sh.length; if (!best || r > best.ratio) best = { ratio: r, rec: ref.records[i] }; });
+    return best && best.ratio >= 0.7 ? { tipo: "parcial", ratio: best.ratio, rec: best.rec } : null;
+  };
+  E.refIssues = function (p, pack, ref) {
+    const m = pack.materiales[p.material], out = []; if (!m || !ref) return out;
+    m.campos.forEach((c) => {
+      const t = (p.fields || {})[c.id]; if (!t || !t.trim()) return;
+      const s = E.simCheck(t, ref); if (!s) return;
+      const where = "fila " + s.rec.l + " de «" + ref.nombre + "»";
+      if (s.tipo === "exacto") out.push({ s: s.n >= 5 ? "err" : "warn", m: c.nombre + ": repite textualmente un copy de la parrilla anterior (" + where + "); escribe una versión nueva", campo: c.id });
+      else out.push({ s: "warn", m: c.nombre + ": se parece mucho (" + Math.round(s.ratio * 100) + "%) a un copy de la parrilla anterior (" + where + "); varía la redacción", campo: c.id });
+    });
+    return out;
   };
 
   root.Engine = E;

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
-<title>Content Studio</title>
+<title>Estudio de contenido</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -58,9 +58,9 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:4px 6px;b
 <body>
 <div id="lg"><div><h2>Acceso</h2><label>Ingresa tu código de acceso</label><input type="text" id="lgi" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"><button class="p" id="lgb">Entrar</button><p class="msg" id="lgm"></p></div></div>
 <div class="w">
-<header class="top"><span class="brand">Content Studio</span><a class="pill" href="https://androspineda.com/">androspineda.com →</a></header>
+<header class="top"><span class="brand">Estudio de contenido</span><a class="pill" href="https://androspineda.com/">androspineda.com →</a></header>
 <div class="eyebrow" id="packname">Paquete de reglas</div>
-<h1>Content Studio</h1>
+<h1>Estudio de contenido</h1>
 <p class="sub">Importa tu parrilla, genera cada pieza con los campos y límites de su material, y revisa reglas de marca, legales y ortografía antes de entregar.</p>
 
 <div class="card">
@@ -85,7 +85,22 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:4px 6px;b
 </div>
 
 <div class="card">
-  <h2><i>02</i> Parrilla de comunicaciones</h2>
+  <h2><i>02</i> Parrilla anterior autorizada (referencia de estilo y estructura)</h2>
+  <label>Sube una parrilla ya aprobada para que la IA entienda el tipo de resultado esperado: estilo, reglas y estructura. No se copian textos: se genera una guía y un detector avisa si una pieza nueva repite o se parece demasiado a una anterior. Usa solo material que tengas autorizado para este fin.</label>
+  <input type="file" id="rfile" accept=".xlsx,.xls,.csv">
+  <div id="rbox" style="display:none">
+    <div class="row" style="margin-top:10px"><div><label>Hoja</label><select id="rsheet"></select></div><div><label>Fila de encabezados</label><input type="number" id="rhrow" min="1" value="1"></div><div><label>Material si la columna no lo indica</label><select id="rdefmat"></select></div></div>
+    <div class="row" id="rroles" style="margin-top:10px"></div>
+    <p class="msg" id="rinfo"></p>
+    <div class="bar"><button class="p" id="ranalyze">Analizar parrilla anterior</button><span class="msg" id="rmsg2"></span></div>
+    <div id="rres"></div>
+  </div>
+  <div class="bar"><label class="ck"><input type="checkbox" id="rex"> Incluir hasta 4 ejemplos literales al generar (mejora el parecido de estilo, pero aumenta el riesgo de repetir frases; el detector de similitud sigue activo)</label></div>
+  <div class="bar"><span class="msg" id="ractive">Sin referencia activa.</span><button id="rclear" style="display:none">Quitar referencia</button></div>
+</div>
+
+<div class="card">
+  <h2><i>03</i> Parrilla de comunicaciones</h2>
   <label>Sube tu archivo (Excel o CSV) o pega el enlace de un Google Sheets. Se detectan hoja, fila de encabezados y columnas; audiencias y SKU no se envían a la IA.</label>
   <input type="file" id="file" accept=".xlsx,.xls,.csv">
   <div class="row" style="margin-top:8px"><div style="flex:3 1 320px"><label>…o enlace de Google Sheets compartido como «Cualquier persona con el enlace: lector» (se carga la pestaña del enlace). Si el contenido es confidencial, descarga la hoja y súbela como archivo.</label><input type="text" id="surl" placeholder="https://docs.google.com/spreadsheets/d/…"></div><button id="surlb" style="flex:0 0 auto">Cargar enlace</button></div>
@@ -101,7 +116,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:4px 6px;b
 </div>
 
 <div class="card">
-  <h2><i>03</i> Piezas</h2>
+  <h2><i>04</i> Piezas</h2>
   <div class="stats" id="stats"></div>
   <div class="bar tabs" style="margin:0 0 6px"><button data-f="all" class="on">Todas</button><button data-f="err">Con errores</button><button data-f="pend">Por generar</button><button data-f="noai">Sin verificar IA</button><button data-f="sku">SKU por verificar</button><button data-f="ok">Aprobadas</button></div>
   <div class="bar"><button class="p" id="gen">Generar textos</button><button id="fix">Corregir con IA las piezas con alertas</button><button id="proof">Verificar ortografía con IA</button><button id="stop">Detener</button><button id="ping">Probar conexión IA</button></div>
@@ -111,7 +126,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:4px 6px;b
 </div>
 
 <div class="card">
-  <h2><i>04</i> Biblioteca legal y límites</h2>
+  <h2><i>05</i> Biblioteca legal y límites</h2>
   <p class="msg">Los textos legales se insertan por reglas (la IA no los redacta). Edítalos aquí; el de MSI está pendiente de cargar.</p>
   <div id="legaled"></div>
   <details><summary>Límites de caracteres por material (ajustes manuales)</summary><div id="limgrid"></div></details>
