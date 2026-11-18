@@ -150,6 +150,13 @@ function rulesBlock(ciclo, materiales) {
   return t;
 }
 
+const styleBlock = (p) => {
+  const est = String(p.estilo || "").slice(0, 3500).trim();
+  const ex = (Array.isArray(p.ejemplos) ? p.ejemplos : []).slice(0, 4).map((x) => "- " + String(x).slice(0, 300));
+  if (!est && !ex.length) return "";
+  return `\nESTILO Y ESTRUCTURA APRENDIDOS DE UNA PARRILLA ANTERIOR AUTORIZADA. Úsalos solo para entender el tipo de resultado esperado (estilo, reglas y estructura). NO copies frases, titulares ni combinaciones de palabras: cada texto debe ser nuevo y responder al brief actual. Si algo contradice las reglas vigentes, mandan las reglas vigentes.\n${est}${ex.length ? "\nEjemplos de referencia (solo para calibrar el nivel de detalle; no los reutilices ni los parafrasees de cerca):\n" + ex.join("\n") : ""}\n`;
+};
+
 const OUT = 'Responde SOLO JSON: [{"i":número,"campos":{"id_del_campo":"texto"}}]. Usa exactamente los ids de campo indicados en cada pieza.';
 const LEGAL = "NO escribas textos legales ni notas al pie: el sistema los inserta. En los materiales con legal, coloca dentro del copy el superíndice ¹ junto a la mención del préstamo (Credimax) y ² junto a MSI/tarjetas participantes o a un descuento adicional/regalo/promoción (TyC), solo cuando esos beneficios aparezcan.";
 const COUNT = "Cuenta los caracteres con cuidado (los emojis y los espacios cuentan) y no excedas el máximo de cada campo.";
@@ -165,6 +172,7 @@ const PROMPTS = {
 ${rulesBlock(p.ciclo, [...new Set(chunk.map((c) => c.material))])}
 
 Guía adicional del cliente: ${String(p.voz || "").slice(0, 4000) || "(ninguna)"}
+${styleBlock(p)}
 
 Usa ÚNICAMENTE los datos de cada brief (oferta, producto, precios, vigencia): no inventes cifras, semanalidades, MSI, escasez ni condiciones. ${LEGAL} ${COUNT}
 ${OUT}
@@ -175,11 +183,17 @@ Piezas: ${J(chunk)}`;
     return `Eres editor y ${who(p.ciclo)}. Corrige cada pieza para que cumpla las reglas y límites, resolviendo todos los problemas listados en "problemas". Conserva el sentido, los datos del brief y el tono; cambia solo lo necesario. Devuelve todos los campos de texto de la pieza (los corregidos y los que no cambian).
 
 ${rulesBlock(p.ciclo, [...new Set(chunk.map((c) => c.material))])}
-
+${styleBlock(p)}
 ${LEGAL} ${COUNT}
 ${OUT}
 Piezas: ${J(chunk)}`;
   },
+  refstyle: (p) => `Eres analista de estilo editorial de ${PACK.marca}. Te comparto ${(p.records || []).length} piezas de una parrilla ANTERIOR y AUTORIZADA (brief → copies finales) y estadísticas calculadas sobre toda la parrilla. Tu objetivo es describir el tipo de resultado que se espera (estilo, reglas observadas y estructura) para que otro redactor produzca copies NUEVOS de calidad y forma equivalentes, SIN copiar frases ni combinaciones de palabras.
+Responde SOLO JSON: {"resumen":"2-3 frases","tono":"","estructura_por_material":[{"material":"código","campos":[{"campo":"id","patron":"descripción abstracta de cómo se construye","longitud_tipica":""}]}],"recursos":"emojis, mayúsculas, puntuación, personalización (#NOMBRE#), urgencia, cifras, superíndices","vocabulario_recurrente":[],"cierres_y_cta":[],"reglas_observadas":["reglas que se cumplen de forma sistemática"],"posibles_excepciones":["rasgos que contradicen las reglas vigentes: señálalos"],"particularidades":[],"patrones":["plantillas abstractas como [Gancho con emoji] + [beneficio con cifra] + [CTA]"],"guia":"máximo 900 caracteres con instrucciones de estilo y estructura listas para usar al redactar; describe patrones, no transcribas copies","ejemplos":[{"material":"código","texto":"copy literal representativo"}]}.
+Reglas: en "guia" y "patrones" NO incluyas frases literales de las piezas. "ejemplos" (máximo 6, variados) sí son literales, solo para que la persona los revise. Basa todo en los datos; si hay pocas piezas, dilo en "resumen". Reglas vigentes de la marca, para detectar contradicciones:
+${bullets(PACK.globales)}
+Estadísticas: ${J(p.stats || {}).slice(0, 4000)}
+Piezas: ${J((p.records || []).slice(0, 40))}`,
   imgstyle: (p) => `Eres director creativo y estratega de contenido de ${PACK.marca}. Te comparto ${(p.images || []).length} imágenes de piezas anteriores (banners, push, in-app, creatividades). Observa el tono y el estilo del TEXTO que aparece en ellas y el estilo visual que acompaña al copy, para que otro redactor pueda escribir copy nuevo con la misma identidad.
 Responde SOLO JSON: {"resumen":"2-3 frases","tono":"","recursos_del_texto":"emojis, mayúsculas, puntuación, longitud y estructura (gancho, beneficio, CTA)","estilo_visual":"colores, composición, tipografía, personajes o mascota, jerarquía y cómo se relaciona con el copy","textos_visibles":[{"material":"si se reconoce","texto":"transcripción literal"}],"particularidades":["rasgos concretos observados"],"guia":"máximo 700 caracteres, lista para usarse como guía de voz","ejemplos":[{"material":"","texto":"texto literal visible en las imágenes"}]}.
 No inventes lo que no se ve: transcribe solo texto legible y omite lo que no lo sea. Estas son las reglas vigentes de la marca; si lo observado las contradice (por ejemplo usa “OFF”), anótalo en "particularidades" y NO lo incluyas en la guía:
