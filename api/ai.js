@@ -8,16 +8,15 @@ const SYSTEM = "Responde únicamente con JSON válido, sin texto adicional ni bl
 
 const PROVIDERS = {
   gemini: {
-    vision: true,
     key: () => process.env.GEMINI_API_KEY,
     model: () => process.env.GEMINI_MODEL || "gemini-3.5-flash-lite", // confirma el nombre vigente en Google AI Studio
-    async call(prompt, model, images) {
+    async call(prompt, model) {
       const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
         method: "POST",
         headers: { "content-type": "application/json", "x-goog-api-key": process.env.GEMINI_API_KEY },
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: SYSTEM }] },
-          contents: [{ role: "user", parts: [{ text: prompt }, ...(images || []).map((i) => ({ inlineData: { mimeType: i.mime, data: i.data } }))] }],
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
           generationConfig: { responseMimeType: "application/json", maxOutputTokens: 4000, temperature: 0.7 },
         }),
       });
@@ -29,7 +28,7 @@ const PROVIDERS = {
   groq: {
     key: () => process.env.GROQ_API_KEY,
     model: () => process.env.GROQ_MODEL || "llama-3.3-70b-versatile", // confirma el nombre vigente en console.groq.com
-    async call(prompt, model, images) {
+    async call(prompt, model) {
       const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
         headers: { "content-type": "application/json", authorization: "Bearer " + process.env.GROQ_API_KEY },
@@ -44,14 +43,13 @@ const PROVIDERS = {
     },
   },
   claude: {
-    vision: true,
     key: () => process.env.ANTHROPIC_API_KEY,
     model: () => process.env.MODEL || "claude-sonnet-5-5",
-    async call(prompt, model, images) {
+    async call(prompt, model) {
       const r = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: { "content-type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01" },
-        body: JSON.stringify({ model, max_tokens: 4000, system: SYSTEM, messages: [{ role: "user", content: images && images.length ? [...images.map((i) => ({ type: "image", source: { type: "base64", media_type: i.mime, data: i.data } })), { type: "text", text: prompt }] : prompt }] }),
+        body: JSON.stringify({ model, max_tokens: 4000, system: SYSTEM, messages: [{ role: "user", content: prompt }] }),
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) throw Object.assign(new Error(j.error?.message || "Error de Claude"), { status: r.status });
@@ -76,21 +74,13 @@ function parseJSON(txt) {
 const CONF_OK = (process.env.CONFIDENTIAL_PROVIDERS || "claude").toLowerCase().split(",").map((x) => x.trim()).filter(Boolean);
 const FORMATS = "Push título, Push cuerpo, Encabezado, Cuerpo, CTA, Alt imagen, Mensaje de error, Banner";
 
-async function run(prompt, confidential, images) {
+async function run(prompt, confidential) {
   const tried = [];
   let order = confidential ? ORDER.filter((n) => CONF_OK.includes(n)) : ORDER;
   if (confidential && !order.some((n) => PROVIDERS[n] && PROVIDERS[n].key())) {
     const e = new Error("Modo confidencial: no hay un proveedor autorizado y configurado. Define CONFIDENTIAL_PROVIDERS (y su clave) en Vercel, o desactiva el modo confidencial para contenido no sensible.");
     e.code = "NO_CONF";
     throw e;
-  }
-  if (images && images.length) {
-    order = order.filter((n) => PROVIDERS[n] && PROVIDERS[n].vision);
-    if (!order.some((n) => PROVIDERS[n].key())) {
-      const e = new Error("Para analizar imágenes hace falta un proveedor con visión (Gemini o Claude) en PROVIDER_ORDER, con su clave y, en modo confidencial, autorizado en CONFIDENTIAL_PROVIDERS.");
-      e.code = "NO_VISION";
-      throw e;
-    }
   }
   for (const name of order) {
     const p = PROVIDERS[name];
@@ -99,7 +89,7 @@ async function run(prompt, confidential, images) {
     const model = p.model();
     for (let i = 0; i < 2; i++) {
       try {
-        const data = parseJSON(await p.call(prompt, model, images));
+        const data = parseJSON(await p.call(prompt, model));
         return { data, provider: name, model, tried };
       } catch (e) {
         const last = i === 1 || !isBusy(e);
@@ -161,8 +151,6 @@ const OUT = 'Responde SOLO JSON: [{"i":número,"campos":{"id_del_campo":"texto"}
 const LEGAL = "NO escribas textos legales ni notas al pie: el sistema los inserta. En los materiales con legal, coloca dentro del copy el superíndice ¹ junto a la mención del préstamo (Credimax) y ² junto a MSI/tarjetas participantes o a un descuento adicional/regalo/promoción (TyC), solo cuando esos beneficios aparezcan.";
 const COUNT = "Cuenta los caracteres con cuidado (los emojis y los espacios cuentan) y no excedas el máximo de cada campo.";
 
-const cleanImages = (a) => (Array.isArray(a) ? a : []).slice(0, 6).filter((i) => i && /^image\/(jpeg|png|webp)$/.test(i.mime) && typeof i.data === "string" && i.data.length < 1500000 && /^[A-Za-z0-9+/=]+$/.test(i.data));
-
 const PROMPTS = {
   ping: () => 'Responde exactamente este JSON: {"ok":true}',
   generate: (p) => {
@@ -194,10 +182,6 @@ Reglas: en "guia" y "patrones" NO incluyas frases literales de las piezas. "ejem
 ${bullets(PACK.globales)}
 Estadísticas: ${J(p.stats || {}).slice(0, 4000)}
 Piezas: ${J((p.records || []).slice(0, 40))}`,
-  imgstyle: (p) => `Eres director creativo y estratega de contenido de ${PACK.marca}. Te comparto ${(p.images || []).length} imágenes de piezas anteriores (banners, push, in-app, creatividades). Observa el tono y el estilo del TEXTO que aparece en ellas y el estilo visual que acompaña al copy, para que otro redactor pueda escribir copy nuevo con la misma identidad.
-Responde SOLO JSON: {"resumen":"2-3 frases","tono":"","recursos_del_texto":"emojis, mayúsculas, puntuación, longitud y estructura (gancho, beneficio, CTA)","estilo_visual":"colores, composición, tipografía, personajes o mascota, jerarquía y cómo se relaciona con el copy","textos_visibles":[{"material":"si se reconoce","texto":"transcripción literal"}],"particularidades":["rasgos concretos observados"],"guia":"máximo 700 caracteres, lista para usarse como guía de voz","ejemplos":[{"material":"","texto":"texto literal visible en las imágenes"}]}.
-No inventes lo que no se ve: transcribe solo texto legible y omite lo que no lo sea. Estas son las reglas vigentes de la marca; si lo observado las contradice (por ejemplo usa “OFF”), anótalo en "particularidades" y NO lo incluyas en la guía:
-${bullets(PACK.globales)}`,
   proof: (p) => `Eres corrector de estilo profesional de español de México (RAE, Ortografía 2010). Revisa ortografía, acentuación, gramática, puntuación (¿? ¡!), concordancia, mayúsculas y typos. Corrige SOLO errores reales: no cambies estilo, tono ni longitud. Conserva tal cual: “${PACK.glosario.marca}” (siempre en minúsculas), ${PACK.glosario.propios.join(", ")}, las variables como ${PACK.glosario.tokens.join(", ")}, los superíndices ¹ ² y los emojis. Si no hay errores, ok=true y corrected igual al original. Responde SOLO un arreglo JSON: [{"id":"el mismo id recibido","ok":boolean,"corrected":"texto","issues":["descripción breve"]}].
 Textos: ${J((p.items || []).slice(0, 20).map((x) => ({ id: x.id, text: String(x.text).slice(0, 600) })))}`,
 };
@@ -210,15 +194,12 @@ module.exports = async (req, res) => {
   const { task, ...p } = req.body || {};
   if (!PROMPTS[task]) return res.status(400).json({ error: "Tarea desconocida" });
   try {
-    const images = task === "imgstyle" ? cleanImages(p.images) : undefined;
-    if (task === "imgstyle" && !images.length) return res.status(400).json({ error: "No hay imágenes válidas (JPG, PNG o WebP)." });
-    const out = await run(PROMPTS[task]({ ...p, images }), !!p.confidential, images);
+    const out = await run(PROMPTS[task](p), !!p.confidential);
     const info = { provider: out.provider + (out.tried.length ? " (respaldo)" : ""), model: out.model };
     return res.status(200).json({ data: task === "ping" ? { ...out.data, ...info } : out.data, via: out.provider });
   } catch (e) {
     console.error(e.message);
     if (e.code === "NO_CONF") return res.status(403).json({ error: e.message });
-    if (e.code === "NO_VISION") return res.status(400).json({ error: e.message });
     return res.status(502).json({ error: "Ningún proveedor de IA respondió bien. " + String(e.message).slice(0, 300) });
   }
 };
