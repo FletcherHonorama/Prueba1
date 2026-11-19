@@ -48,6 +48,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 .msg{font-size:13px;color:var(--mut)}.tabs button.on{background:var(--pri);color:var(--prit)}
 details summary{cursor:pointer;color:var(--mut);font-size:13px;margin-top:8px}details ul{font-size:13px;color:var(--mut);padding-left:18px}
 .item.appr{border-color:var(--ok)}
+button.danger{border-color:var(--er);color:var(--er)}button.danger:hover:not(:disabled){background:var(--er);border-color:var(--er);color:#fff}
 details.res{border-top:1px solid var(--bd);padding:2px 0}details.res>summary{color:var(--tx);font-weight:600;font-size:14px;margin:8px 0}details.res>summary .chip{margin-left:6px;font-weight:500}
 .tw{overflow-x:auto;border:1px solid var(--bd);border-radius:12px;margin-top:6px}.pv th{vertical-align:top;font-weight:600;min-width:150px}.pv th select{display:block;margin-top:6px;width:100%;font-size:12px;padding:4px}.pv td{font-size:12px;vertical-align:top;max-width:240px}
 table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:4px 6px;border-bottom:1px solid var(--bd);text-align:left}td input{width:90px}
@@ -71,6 +72,8 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:4px 6px;b
     <div><label>Segmento (Recu-Retención)</label><select id="seg"></select></div>
     <div><label>Variantes por comunicación</label><select id="nvar"><option>1</option><option>2</option><option>3</option></select></div>
   </div>
+  <div class="row" style="margin-top:10px"><div style="flex:2 1 320px"><label>Temporalidad (si aplica)</label><input type="text" id="temp" placeholder="p. ej. Del 14 al 17 de noviembre · Solo hoy · Buen Fin"></div><button id="tempall" style="flex:0 0 auto">Aplicar a todas las piezas</button></div>
+  <p class="msg">La escribes tú: la IA no la inventa. Aparece al inicio del Copy in como tag para Diseño, p. ej. «(Tag Del 14 al 17 de noviembre)». Se usa en las piezas que cargues después y puedes cambiarla en cada pieza.</p>
   <p class="msg" id="ciclonote"></p>
   <div class="bar"><label class="ck"><input type="checkbox" id="confmode" checked> Modo confidencial (solo proveedores de IA autorizados)</label><label class="ck"><input type="checkbox" id="usesku"> Enviar SKU a la IA (solo si el copy debe incluirlos)</label></div>
   <div class="bar"><label class="ck"><input type="checkbox" id="skureq" checked> Exigir SKU verificado como «Disponible» para aprobar</label><label style="margin:0">Buscar cada SKU en Google junto con</label><input type="text" id="skusite" value="Elektra" style="max-width:160px"></div>
@@ -115,7 +118,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:4px 6px;b
   <h2><i>04</i> Piezas</h2>
   <div class="stats" id="stats"></div>
   <div class="bar tabs" style="margin:0 0 6px"><button data-f="all" class="on">Todas</button><button data-f="err">Con errores</button><button data-f="pend">Por generar</button><button data-f="noai">Sin verificar IA</button><button data-f="sku">SKU por verificar</button><button data-f="ok">Aprobadas</button></div>
-  <div class="bar"><button class="p" id="gen">Generar textos</button><button id="fix">Corregir con IA las piezas con alertas</button><button id="proof">Verificar ortografía con IA</button><button id="stop">Detener</button><button id="ping">Probar conexión IA</button></div>
+  <div class="bar"><button class="p" id="gen">Generar textos</button><button id="fix">Corregir con IA las piezas con alertas</button><button id="proof">Verificar ortografía con IA</button><button id="stop">Detener</button><button class="danger" id="clearall">Borrar todas las propuestas</button><button id="undodel" style="display:none">Deshacer borrado</button><button id="ping">Probar conexión IA</button></div>
   <div class="bar"><button class="p" id="expfmt">Exportar Excel con los copies (copia del archivo original)</button><button id="expo">Descargar resumen de todas las piezas (Excel)</button><button id="expsku">Exportar lista de SKU a verificar</button><label class="ck"><input type="checkbox" id="expOnly"> solo aprobadas</label><span class="msg" id="rmsg"></span></div>
   <div id="list" style="margin-top:12px"></div>
   <div class="bar"><button id="more" style="display:none">Mostrar más</button></div>

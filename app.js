@@ -59,6 +59,12 @@ function chipsHtml(p) {
   if (isEmpty(p)) return '<span class="chip inf">Sin texto todavía</span>';
   return c.length ? c.map((x) => '<span class="chip ' + x.s + '">' + esc(x.m) + "</span>").join("") : '<span class="chip ok">Reglas: sin alertas</span>';
 }
+function tagHtml(p) {
+  const t = E.tagLine(p, PACK);
+  if (t) return "<b>Tag para Diseño (automático)</b>: " + esc(t) + " <small>— se inserta al inicio del Copy in</small>";
+  if ((p.brief.temporalidad || "").trim()) return "<small>Este material no lleva tag: la temporalidad se usa como dato para la redacción.</small>";
+  return "<small>Sin temporalidad: no se agrega tag.</small>";
+}
 function legalHtml(p) {
   if (!mat(p).legal) return "";
   const lg = E.autoLegal(p, PACK, legalLib);
@@ -96,7 +102,9 @@ function cardHtml(p) {
     return '<div class="fl"><label>' + esc(c.nombre) + '</label><span class="cnt' + (l && v.length > (l.hasta || l.max) ? " over" : "") + '" data-n="' + c.id + '">' + v.length + (l ? "/" + l.max : "") + "</span></div>" +
       '<textarea rows="' + (c.id === "in" ? 3 : 2) + '" spellcheck="true" lang="es-MX" data-id="' + p.id + '" data-c="' + c.id + '">' + esc(v) + "</textarea>";
   }).join("");
-  return '<div class="meta">' + meta + '</div><div class="brief"><b>Oferta:</b> ' + esc((b.oferta || "").slice(0, 200)) + (b.consideraciones ? " · <i>" + esc(b.consideraciones.slice(0, 80)) + "</i>" : "") + "</div>" + fields +
+  const tagOn = E.tagLine({ material: p.material, brief: { temporalidad: "x" } }, PACK) !== "";
+  const tmp = '<div class="row" style="margin:4px 0 6px"><div style="flex:1 1 280px"><label>Temporalidad (si aplica)</label><input type="text" data-a="temp" data-id="' + p.id + '" value="' + esc(b.temporalidad || "") + '" placeholder="p. ej. Del 14 al 17 de noviembre"></div></div><div class="legal" data-r="tag">' + tagHtml(p) + "</div>";
+  return '<div class="meta">' + meta + '</div><div class="brief"><b>Oferta:</b> ' + esc((b.oferta || "").slice(0, 200)) + (b.consideraciones ? " · <i>" + esc(b.consideraciones.slice(0, 80)) + "</i>" : "") + "</div>" + tmp + fields +
     '<div data-r="legal">' + legalHtml(p) + '</div><div data-r="sku">' + skuHtml(p) + '</div><div class="chips" data-r="chips">' + chipsHtml(p) + '</div><div class="ai" data-r="ai">' + aiHtml(p) + '</div><div class="foot" data-r="foot">' + footHtml(p) + "</div>";
 }
 function refreshCard(p) {
@@ -106,6 +114,7 @@ function refreshCard(p) {
     el.querySelector("[data-r=chips]").innerHTML = chipsHtml(p);
     el.querySelector("[data-r=legal]").innerHTML = legalHtml(p);
     el.querySelector("[data-r=sku]").innerHTML = skuHtml(p);
+    el.querySelector("[data-r=tag]").innerHTML = tagHtml(p);
     el.querySelector("[data-r=ai]").innerHTML = aiHtml(p);
     const L = lim(p);
     mat(p).campos.forEach((c) => { const n = el.querySelector('[data-n="' + c.id + '"]'); if (n) { const v = (p.fields[c.id] || "").length, l = L[c.id]; n.textContent = v + (l ? "/" + l.max : ""); n.className = "cnt" + (l && v > (l.hasta || l.max) ? " over" : ""); } });
@@ -155,6 +164,10 @@ function onSku(id, sku, field, val) {
   if (GATED.includes(p.estado) && !canApprove(p)) { p.estado = "Por revisar"; msg("La pieza volvió a «Por revisar»: un SKU ya no está como «Disponible»."); }
   refreshCard(p);
 }
+function onTemp(id, val) {
+  const p = items.find((x) => x.id === id); if (!p) return;
+  p.brief.temporalidad = String(val || "").replace(/\s+/g, " ").trim(); refreshCard(p);
+}
 function onMat(id, val) {
   const p = items.find((x) => x.id === id); if (!p || !PACK.materiales[val]) return;
   const keep = {}; PACK.materiales[val].campos.forEach((c) => { if (p.fields[c.id]) keep[c.id] = p.fields[c.id]; });
@@ -166,7 +179,7 @@ function onAct(a, id) {
   if (a === "apply" && p.aiSug) { Object.entries(p.aiSug).forEach(([k, v]) => { p.fields[k] = v.text; }); p.aiSug = null; p.aiOk = true; render(); }
 }
 $("#list").addEventListener("input", (e) => { const t = e.target; if (t.tagName === "TEXTAREA") onField(t.dataset.id, t.dataset.c, t.value); });
-$("#list").addEventListener("change", (e) => { const t = e.target; if (t.dataset && t.dataset.a === "st") onState(t.dataset.id, t.value); if (t.dataset && t.dataset.a === "mat") onMat(t.dataset.id, t.value); if (t.dataset && t.dataset.a === "skust") onSku(t.dataset.id, t.dataset.k, "estado", t.value); if (t.dataset && t.dataset.a === "skuurl") onSku(t.dataset.id, t.dataset.k, "url", t.value.trim()); });
+$("#list").addEventListener("change", (e) => { const t = e.target; if (t.dataset && t.dataset.a === "st") onState(t.dataset.id, t.value); if (t.dataset && t.dataset.a === "mat") onMat(t.dataset.id, t.value); if (t.dataset && t.dataset.a === "skust") onSku(t.dataset.id, t.dataset.k, "estado", t.value); if (t.dataset && t.dataset.a === "skuurl") onSku(t.dataset.id, t.dataset.k, "url", t.value.trim()); if (t.dataset && t.dataset.a === "temp") onTemp(t.dataset.id, t.value); });
 $("#list").addEventListener("click", (e) => { const b = e.target.closest && e.target.closest("button"); if (b && b.dataset.a) onAct(b.dataset.a, b.dataset.id); });
 document.querySelectorAll(".tabs button").forEach((b) => (b.onclick = () => { filter = b.dataset.f; shown = 60; document.querySelectorAll(".tabs button").forEach((x) => x.classList.toggle("on", x === b)); render(); }));
 $("#more").onclick = () => { shown += 60; render(); };
@@ -174,7 +187,7 @@ $("#stop").onclick = () => { stopFlag = true; };
 
 /* ---------- IA: generar, corregir, verificar ---------- */
 function entry(p, k, fix) {
-  const b = p.brief, o = { i: k, material: p.material, campos: specs(p), categoria: b.categoria, oferta: b.oferta, consideraciones: b.consideraciones, dia: b.dia, hora: b.hora, segmento: b.segKey || undefined };
+  const b = p.brief, o = { i: k, material: p.material, campos: specs(p), categoria: b.categoria, oferta: b.oferta, consideraciones: b.consideraciones, temporalidad: b.temporalidad || undefined, dia: b.dia, hora: b.hora, segmento: b.segKey || undefined };
   if ($("#usesku").checked && b.sku) o.sku = b.sku;
   if (fix) { o.actuales = p.fields; o.problemas = check(p).filter((x) => !/Sin texto/.test(x.m)).map((x) => x.m); }
   return o;
@@ -327,7 +340,7 @@ function loadRef() {
 }
 
 /* ---------- importación de la parrilla ---------- */
-const ROLES = [["", "(no usar)"], ["semana", "Semana"], ["dia", "Día"], ["hora", "Hora"], ["categoria", "Categoría"], ["oferta", "Oferta"], ["material", "Tipo de material"], ["consideraciones", "Consideraciones"], ["segmento", "Segmento (solo para detectar SI-SI / SI-NO / NO-NO)"], ["sku", "SKU"]];
+const ROLES = [["", "(no usar)"], ["semana", "Semana"], ["dia", "Día"], ["hora", "Hora"], ["categoria", "Categoría"], ["oferta", "Oferta"], ["material", "Tipo de material"], ["consideraciones", "Consideraciones"], ["temporalidad", "Temporalidad / vigencia"], ["segmento", "Segmento (solo para detectar SI-SI / SI-NO / NO-NO)"], ["sku", "SKU"]];
 const clip = (s, n) => { s = String(s == null ? "" : s).replace(/\s+/g, " ").trim(); return s.length > n ? s.slice(0, n - 1) + "…" : s; };
 const hrowIdx = () => Math.max(1, +$("#hrow").value || 1) - 1;
 function readRoles() {
@@ -401,7 +414,7 @@ $("#mkpieces").onclick = () => {
   let made = 0, skipped = 0, noMat = {}, total = 0;
   for (let ri = h + 1; ri < IMP.rows.length; ri++) {
     const r = IMP.rows[ri];
-    const b = { semana: get(r, "semana"), dia: get(r, "dia"), hora: get(r, "hora"), categoria: get(r, "categoria"), oferta: get(r, "oferta"), consideraciones: get(r, "consideraciones"), sku: get(r, "sku") };
+    const b = { semana: get(r, "semana"), dia: get(r, "dia"), hora: get(r, "hora"), categoria: get(r, "categoria"), oferta: get(r, "oferta"), consideraciones: get(r, "consideraciones"), sku: get(r, "sku"), temporalidad: get(r, "temporalidad") || $("#temp").value.trim() };
     if (!b.oferta && !b.categoria) continue;
     total++;
     const matCell = col.material >= 0 ? String(r[col.material] || "").trim() : "";
@@ -417,16 +430,16 @@ $("#mkpieces").onclick = () => {
 $("#madd").onclick = () => {
   const o = $("#mofe").value.trim(), c = $("#mcat").value.trim(), sk = $("#msku").value.trim(); if (!o && !c) { msg("Escribe al menos la oferta o la categoría."); return; }
   const n = +$("#nvar").value || 1, segSel = $("#seg").value;
-  for (let i = 0; i < n; i++) items.push(newPiece($("#ciclo").value, $("#mmat").value, { categoria: c, oferta: o, sku: sk, consideraciones: $("#mcons").value.trim(), segKey: segSel !== "-" ? segSel : "" }));
+  for (let i = 0; i < n; i++) items.push(newPiece($("#ciclo").value, $("#mmat").value, { categoria: c, oferta: o, sku: sk, temporalidad: $("#temp").value.trim(), consideraciones: $("#mcons").value.trim(), segKey: segSel !== "-" ? segSel : "" }));
   $("#mofe").value = ""; render();
 };
 
 /* ---------- exportación a Excel ---------- */
 function exportRows(onlyOk) {
-  const head = ["Semana", "Día", "Hora", "Ciclo", "Tipo de material", "Categoría", "Oferta", "SKU / disponibilidad", "Título / Copy out título", "# carac. título", "Subtítulo (Copy out)", "Cuerpo / Copy in", "# carac. cuerpo", "CTA", "Legal", "Estado", "Alertas"];
+  const head = ["Semana", "Día", "Hora", "Ciclo", "Tipo de material", "Categoría", "Oferta", "SKU / disponibilidad", "Título / Copy out título", "# carac. título", "Subtítulo (Copy out)", "Cuerpo / Copy in", "# carac. cuerpo", "CTA", "Legal", "Estado", "Alertas", "Temporalidad (tag)"];
   const rows = items.filter((p) => !isEmpty(p) && (!onlyOk || GATED.includes(p.estado))).map((p) => {
     const F = p.fields, t = F.titulo || F.out_titulo || "", c = F.cuerpo || F.in || "";
-    return [p.brief.semana, p.brief.dia, p.brief.hora, (PACK.ciclos[p.ciclo] || {}).nombre, mat(p).nombre, p.brief.categoria, p.brief.oferta, skuList(p).map((s) => s + " " + skuState(p, s)).join("; "), t, t.length, F.out_subtitulo || "", c, c.length, F.cta || "", E.autoLegal(p, PACK, legalLib).texto, p.estado, check(p).map((x) => x.m).join(" | ")];
+    return [p.brief.semana, p.brief.dia, p.brief.hora, (PACK.ciclos[p.ciclo] || {}).nombre, mat(p).nombre, p.brief.categoria, p.brief.oferta, skuList(p).map((s) => s + " " + skuState(p, s)).join("; "), t, t.length, F.out_subtitulo || "", c, c.length, F.cta || "", E.autoLegal(p, PACK, legalLib).texto, p.estado, check(p).map((x) => x.m).join(" | "), E.tagLine(p, PACK)];
   });
   return [head].concat(rows);
 }
@@ -547,12 +560,29 @@ function renderLimits() {
 }
 $("#ciclo").onchange = () => { if (PACK) { renderRules(); renderCicloNote(); } };
 
+$("#tempall").onclick = () => {
+  const v = $("#temp").value.replace(/\s+/g, " ").trim(); items.forEach((p) => { p.brief.temporalidad = v; });
+  render(); msg(items.length ? (v ? "Temporalidad aplicada a " + items.length + " piezas." : "Temporalidad borrada en " + items.length + " piezas.") : "Todavía no hay piezas: se usará en las que cargues.");
+};
+var UNDO = null, clearArm = false;
+$("#clearall").onclick = () => {
+  if (!items.length) { msg("No hay propuestas que borrar."); return; }
+  if (!clearArm) { clearArm = true; $("#clearall").textContent = "Confirmar: borrar " + items.length + " piezas"; setTimeout(() => { clearArm = false; $("#clearall").textContent = "Borrar todas las propuestas"; }, 5000); return; }
+  clearArm = false; $("#clearall").textContent = "Borrar todas las propuestas";
+  UNDO = { items, temp: $("#temp").value, IMP, ORIG }; const n = items.length;
+  items = []; IMP = null; ORIG = null; filter = "all"; shown = 60;
+  $("#impBox").style.display = "none"; $("#maps").innerHTML = ""; $("#impinfo").textContent = ""; $("#impmsg").textContent = ""; try { $("#file").value = ""; } catch (e) { /* sin acceso */ }
+  $("#temp").value = ""; $("#undodel").style.display = "inline-block"; render(); msg("Se borraron " + n + " piezas. Ya puedes cargar una parrilla nueva (la temporalidad también se limpió).");
+};
+$("#undodel").onclick = () => {
+  if (!UNDO) return; items = UNDO.items; $("#temp").value = UNDO.temp; IMP = UNDO.IMP; ORIG = UNDO.ORIG; UNDO = null; $("#undodel").style.display = "none"; render(); msg("Borrado deshecho: se recuperaron " + items.length + " piezas.");
+};
 /* ---------- guardado local ---------- */
 function persist() {
   if (!loaded) return; clearTimeout(saveT);
   saveT = setTimeout(() => {
     try {
-      localStorage.setItem("contenido-pro:v1", JSON.stringify({ items: items.map((p) => ({ id: p.id, t: p.t, ciclo: p.ciclo, material: p.material, brief: p.brief, fields: p.fields, estado: p.estado, aiOk: !!p.aiOk, skus: p.skus || {}, src: p.src || null })), cfg: { skureq: $("#skureq").checked, skusite: $("#skusite").value, ciclo: $("#ciclo").value, seg: $("#seg").value, n: $("#nvar").value, voz: $("#voz").value, conf: $("#confmode").checked, sku: $("#usesku").checked }, legalLib, ovr }));
+      localStorage.setItem("contenido-pro:v1", JSON.stringify({ items: items.map((p) => ({ id: p.id, t: p.t, ciclo: p.ciclo, material: p.material, brief: p.brief, fields: p.fields, estado: p.estado, aiOk: !!p.aiOk, skus: p.skus || {}, src: p.src || null })), cfg: { temp: $("#temp").value, skureq: $("#skureq").checked, skusite: $("#skusite").value, ciclo: $("#ciclo").value, seg: $("#seg").value, n: $("#nvar").value, voz: $("#voz").value, conf: $("#confmode").checked, sku: $("#usesku").checked }, legalLib, ovr }));
     } catch (e) { msg("No se pudo guardar en este navegador: exporta tu trabajo."); }
   }, 800);
 }
@@ -561,10 +591,10 @@ function loadLocal() {
     const d = JSON.parse(localStorage.getItem("contenido-pro:v1") || "null"); if (!d) return;
     items = (d.items || []).filter((p) => PACK.materiales[p.material]).map((p) => Object.assign({ aiSug: null, skus: {} }, p)); legalLib = d.legalLib || {}; ovr = d.ovr || {};
     const c = d.cfg || {}; if (c.ciclo && PACK.ciclos[c.ciclo]) $("#ciclo").value = c.ciclo; if (c.seg) $("#seg").value = c.seg; if (c.n) $("#nvar").value = c.n; if (c.voz) $("#voz").value = c.voz;
-    $("#skureq").checked = c.skureq !== false; if (c.skusite) $("#skusite").value = c.skusite; $("#confmode").checked = c.conf !== false; $("#usesku").checked = !!c.sku;
+    $("#temp").value = c.temp || ""; $("#skureq").checked = c.skureq !== false; if (c.skusite) $("#skusite").value = c.skusite; $("#confmode").checked = c.conf !== false; $("#usesku").checked = !!c.sku;
   } catch (e) { /* sin datos previos */ }
 }
-["#voz", "#ciclo", "#seg", "#nvar", "#confmode", "#usesku", "#skureq", "#skusite"].forEach((s) => { $(s).addEventListener("input", persist); $(s).addEventListener("change", persist); });
+["#voz", "#ciclo", "#seg", "#nvar", "#confmode", "#usesku", "#skureq", "#skusite", "#temp"].forEach((s) => { $(s).addEventListener("input", persist); $(s).addEventListener("change", persist); });
 
 ["#skureq", "#skusite"].forEach((s) => $(s).addEventListener("change", () => PACK && render()));
 

@@ -44,7 +44,7 @@
 
   /* ---------- Hechos del brief ---------- */
   E.facts = function (b) {
-    const txt = [b.categoria, b.oferta, b.consideraciones, b.producto, b.vigencia].filter(Boolean).join(" · ");
+    const txt = [b.categoria, b.oferta, b.consideraciones, b.producto, b.vigencia, b.temporalidad].filter(Boolean).join(" · ");
     const nums = new Set((txt.match(/\d[\d.,]*/g) || []).map(normNum));
     return {
       txt, nums,
@@ -89,6 +89,11 @@
     const filled = m.campos.filter((c) => (F[c.id] || "").trim());
     if (!filled.length) return [{ s: "warn", m: "Sin texto todavía" }];
     const facts = E.facts(p.brief || {});
+    const tg = E.tagLine(p, pack);
+    if (p.brief && p.brief.temporalidad) {
+      E.spell(p.brief.temporalidad, opts.typos).forEach((x) => out.push({ s: x.s, m: "Temporalidad: " + x.m, campo: "temporalidad" }));
+      if (tg && /\(\s*tag\b/i.test(F.in || "")) warn("El Copy in ya contiene un tag: el sistema agrega el de temporalidad al inicio");
+    }
 
     m.campos.forEach((c) => {
       const t = F[c.id] || "";
@@ -180,7 +185,7 @@
   const HDR = [
     ["semana", /^semana/i], ["dia", /^d[ií]a/i], ["hora", /^hora/i], ["fecha", /^fecha/i],
     ["segmento", /segmento|audiencia/i], ["categoria", /categor[ií]a/i], ["oferta", /oferta|apuesta/i], ["sku", /sku/i],
-    ["material", /tipo de\s*material|^material/i], ["consideraciones", /consideraci/i],
+    ["material", /tipo de\s*material|^material/i], ["consideraciones", /consideraci/i], ["temporalidad", /temporalidad|vigencia/i],
   ];
   E.detectHeader = function (rows) {
     let best = -1, score = 0;
@@ -262,9 +267,15 @@
     });
     return { map, counts };
   };
+  /* Tag de temporalidad para Diseño: lo escribe la persona; se inserta al inicio del Copy in */
+  E.tagLine = function (p, pack) {
+    const t = String((p.brief || {}).temporalidad || "").replace(/\s+/g, " ").trim(), tg = pack.tag;
+    if (!t || !tg || !(tg.materiales || []).includes(p.material)) return "";
+    return String(tg.formato || "(Tag {t})").replace("{t}", t);
+  };
   E.exportValues = function (p, pack, lib) {
-    const F = p.fields || {};
-    return { titulo: (F.titulo || F.out_titulo || "").trim(), copyout: (F.cuerpo || F.out_subtitulo || "").trim(), copyin: (F.in || "").trim(), cta: (F.cta || "").trim(), legal: E.autoLegal(p, pack, lib).texto };
+    const F = p.fields || {}, tag = E.tagLine(p, pack), cin = (F.in || "").trim();
+    return { titulo: (F.titulo || F.out_titulo || "").trim(), copyout: (F.cuerpo || F.out_subtitulo || "").trim(), copyin: tag ? tag + (cin ? "\n" + cin : "") : cin, cta: (F.cta || "").trim(), legal: E.autoLegal(p, pack, lib).texto };
   };
 
   /* ---------- parrilla anterior autorizada: estadísticas, alertas y detector de similitud ---------- */
