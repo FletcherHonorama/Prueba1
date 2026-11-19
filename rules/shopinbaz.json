@@ -496,5 +496,14 @@
     2,
     6,
     7
-  ]
+  ],
+  "tag": {
+    "formato": "(Tag {t})",
+    "materiales": [
+      "PE",
+      "WA",
+      "MA"
+    ],
+    "nota": "Indicación para Diseño: se inserta al inicio del Copy in con la temporalidad que escribe la persona; la IA nunca la inventa."
+  }
 }
