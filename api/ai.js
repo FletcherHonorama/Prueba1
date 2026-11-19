@@ -149,6 +149,7 @@ const styleBlock = (p) => {
 
 const OUT = 'Responde SOLO JSON: [{"i":número,"campos":{"id_del_campo":"texto"}}]. Usa exactamente los ids de campo indicados en cada pieza.';
 const LEGAL = "NO escribas textos legales ni notas al pie: el sistema los inserta. En los materiales con legal, coloca dentro del copy el superíndice ¹ junto a la mención del préstamo (Credimax) y ² junto a MSI/tarjetas participantes o a un descuento adicional/regalo/promoción (TyC), solo cuando esos beneficios aparezcan.";
+const TEMP = `Si una pieza trae "temporalidad", úsala exactamente como viene: no la cambies, no la inventes ni la completes. En los materiales ${(PACK.tag && PACK.tag.materiales || []).join(", ")} el sistema inserta el tag de temporalidad al inicio del Copy in como indicación para Diseño: NO escribas ese tag ni repitas la temporalidad como etiqueta; basta con que ninguna fecha o cifra del copy la contradiga. En los demás materiales, incluye la vigencia cuando el formato lo permita y el brief la traiga.`;
 const COUNT = "Cuenta los caracteres con cuidado (los emojis y los espacios cuentan) y no excedas el máximo de cada campo.";
 
 const PROMPTS = {
@@ -162,7 +163,7 @@ ${rulesBlock(p.ciclo, [...new Set(chunk.map((c) => c.material))])}
 Guía adicional del cliente: ${String(p.voz || "").slice(0, 4000) || "(ninguna)"}
 ${styleBlock(p)}
 
-Usa ÚNICAMENTE los datos de cada brief (oferta, producto, precios, vigencia): no inventes cifras, semanalidades, MSI, escasez ni condiciones. ${LEGAL} ${COUNT}
+Usa ÚNICAMENTE los datos de cada brief (oferta, producto, precios, vigencia): no inventes cifras, semanalidades, MSI, escasez ni condiciones. ${LEGAL} ${TEMP} ${COUNT}
 ${OUT}
 Piezas: ${J(chunk)}`;
   },
@@ -172,7 +173,7 @@ Piezas: ${J(chunk)}`;
 
 ${rulesBlock(p.ciclo, [...new Set(chunk.map((c) => c.material))])}
 ${styleBlock(p)}
-${LEGAL} ${COUNT}
+${LEGAL} ${TEMP} ${COUNT}
 ${OUT}
 Piezas: ${J(chunk)}`;
   },
